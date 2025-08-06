@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { User, Mail, Phone, Calendar, Shield, Edit } from 'lucide-react'
+import { User, Mail, Phone, Shield, Edit } from 'lucide-react'
 
 export default async function ProfilePage() {
   const user = await getCurrentUserServer()

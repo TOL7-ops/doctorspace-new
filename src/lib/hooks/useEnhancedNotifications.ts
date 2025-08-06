@@ -238,7 +238,7 @@ export function useEnhancedNotifications(userId: string) {
       console.error('Error marking notification as read:', err)
       toast.error('Failed to mark notification as read')
     }
-  }, [])
+  }, [transformNotification])
 
   // Mark all notifications as read using API
   const markAllAsRead = useCallback(async () => {
@@ -290,7 +290,7 @@ export function useEnhancedNotifications(userId: string) {
       console.error('Error deleting notification:', err)
       toast.error('Failed to delete notification')
     }
-  }, [])
+  }, [transformNotification])
 
   // Clear all notifications using API
   const clearAllNotifications = useCallback(async () => {

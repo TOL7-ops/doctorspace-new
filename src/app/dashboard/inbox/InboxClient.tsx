@@ -26,7 +26,7 @@ export function InboxClient() {
   const router = useRouter()
   const [messages, setMessages] = useState<Message[]>([])
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState<any>(null)
+  const [user, setUser] = useState<{ id: string; email?: string } | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -156,7 +156,7 @@ export function InboxClient() {
                   No messages
                 </h3>
                 <p className="text-muted-foreground">
-                  You don't have any messages yet.
+                  You don&apos;t have any messages yet.
                 </p>
               </div>
             </CardContent>

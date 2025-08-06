@@ -1,5 +1,4 @@
 import { Inter } from 'next/font/google'
-import SupabaseProvider from '@/components/providers/SupabaseProvider'
 import { createServerSupabase } from '@/lib/supabase-server'
 import { DashboardHeader } from './DashboardHeader'
 import { BottomNavigation } from './BottomNavigation'
@@ -17,7 +16,7 @@ export default async function DashboardLayout({
   children: React.ReactNode
 }) {
   const supabase = createServerSupabase()
-  const { data: { user } } = await supabase.auth.getUser()
+  await supabase.auth.getUser()
 
   return (
     <div className={`${inter.className} min-h-screen bg-background`}>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ClockIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import { Appointment } from '@/types';
-import { supabase } from '@/lib/supabase';
+
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { cancelAppointment } from '@/lib/appointment-management';

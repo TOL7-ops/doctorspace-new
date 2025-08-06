@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { format } from 'date-fns'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -44,29 +44,12 @@ export function RescheduleModal({
   })
 
   // Default time slots (9 AM to 5 PM)
-  const defaultTimeSlots = [
+  const defaultTimeSlots = useMemo(() => [
     '09:00', '10:00', '11:00', '12:00',
     '13:00', '14:00', '15:00', '16:00', '17:00'
-  ]
+  ], [])
 
-  useEffect(() => {
-    if (!isOpen) {
-      setSelectedDate('')
-      setSelectedTime('')
-      setReason('')
-      setAvailableSlots([])
-    }
-  }, [isOpen])
-
-  useEffect(() => {
-    if (selectedDate && appointment.doctor_id) {
-      fetchAvailableSlots(selectedDate, appointment.doctor_id)
-    } else {
-      setAvailableSlots(defaultTimeSlots)
-    }
-  }, [selectedDate, appointment.doctor_id])
-
-  const fetchAvailableSlots = async (date: string, doctorId: string) => {
+  const fetchAvailableSlots = useCallback(async (date: string, doctorId: string) => {
     setLoadingSlots(true)
     try {
       // Get doctor's available hours
@@ -100,7 +83,24 @@ export function RescheduleModal({
     } finally {
       setLoadingSlots(false)
     }
-  }
+  }, [defaultTimeSlots])
+
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedDate('')
+      setSelectedTime('')
+      setReason('')
+      setAvailableSlots([])
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (selectedDate && appointment.doctor_id) {
+      fetchAvailableSlots(selectedDate, appointment.doctor_id)
+    } else {
+      setAvailableSlots(defaultTimeSlots)
+    }
+  }, [selectedDate, appointment.doctor_id, fetchAvailableSlots])
 
   const handleReschedule = async () => {
     if (!selectedDate || !selectedTime) {

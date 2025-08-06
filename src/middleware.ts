@@ -11,7 +11,7 @@ export async function middleware(req: NextRequest) {
 
   try {
     // Refresh session if expired
-    const { data: { user }, error } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
 
     // Handle auth state
     const isPublicRoute = publicRoutes.some(route => req.nextUrl.pathname.startsWith(route))
@@ -36,8 +36,8 @@ export async function middleware(req: NextRequest) {
 
     // User is authenticated, allow access to protected routes
     return res
-  } catch (e) {
-    console.error('Middleware error:', e)
+  } catch {
+    console.error('Middleware error occurred')
     // On error, allow the request to continue
     return res
   }

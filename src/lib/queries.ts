@@ -1,7 +1,6 @@
 'use client'
 
 import { supabase } from './supabase';
-import type { User, Doctor, Appointment, Message } from '@/types';
 
 export async function getCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser();
@@ -143,4 +142,4 @@ export async function markMessageAsRead(messageId: string) {
   if (error) {
     throw new Error(`Failed to mark message as read: ${error.message}`);
   }
-} 
+}

@@ -11,6 +11,7 @@ import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 import { Spinner } from '@/components/ui/spinner';
 import { createAppointmentNotification } from '@/lib/notifications';
+import Image from 'next/image';
 
 interface Doctor {
   id: string;
@@ -188,7 +189,7 @@ export default function DoctorAppointmentPage() {
           );
         } catch (notificationError) {
           console.error('Error creating notification:', notificationError);
-          // Don't fail the appointment booking if notification fails
+          // Don&apos;t fail the appointment booking if notification fails
         }
       }
 
@@ -292,10 +293,11 @@ export default function DoctorAppointmentPage() {
                 <div className="flex items-start space-x-4">
                   <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-full">
                     {doctor.image_url ? (
-                      <img
+                      <Image
                         src={doctor.image_url}
                         alt={`Dr. ${doctor.full_name}`}
-                        className="h-full w-full object-cover"
+                        fill
+                        className="object-cover"
                       />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center bg-muted text-muted-foreground">

@@ -22,12 +22,13 @@ export default function SignUpPage() {
 
   const isNextEnabled = name && ((useEmail && email) || (!useEmail && phone)) && month && day && year;
 
-  const handleNext = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isNextEnabled) return;
     setLoading(true);
+
     try {
       const dateOfBirth = `${year}-${String(months.indexOf(month) + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      
       let result;
       if (useEmail) {
         result = await supabase.auth.signUp({
@@ -38,7 +39,6 @@ export default function SignUpPage() {
               full_name: name,
               date_of_birth: dateOfBirth,
             },
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
           },
         });
       } else {
@@ -53,19 +53,23 @@ export default function SignUpPage() {
           },
         });
       }
+
       if (result.error) {
         toast.error(result.error.message || 'Signup failed.');
-        setLoading(false);
         return;
       }
-      toast.success('Account created! Check your email or phone for verification.');
-      if (useEmail) {
-        router.push('/verify-email?email=' + encodeURIComponent(email));
-      } else {
-        router.push('/login');
+
+      if (result.data.user) {
+        toast.success('Account created! Check your email or phone for verification.');
+        if (useEmail) {
+          router.push('/verify-email?email=' + encodeURIComponent(email));
+        } else {
+          router.push('/login');
+        }
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Signup failed.');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -74,7 +78,7 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-2">
       <div className="bg-card rounded-2xl shadow-xl w-full max-w-md mx-auto p-0 sm:p-0 border border-border">
-        <form onSubmit={handleNext} className="flex flex-col">
+        <form onSubmit={handleSubmit} className="flex flex-col">
           <div className="flex justify-end p-4">
             <button type="button" aria-label="Close" className="text-2xl text-muted-foreground hover:text-foreground">&times;</button>
           </div>

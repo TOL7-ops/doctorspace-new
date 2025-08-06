@@ -1,3 +1,4 @@
+import { createClient } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 import { Database } from '@/types/database.types'
 import { safeLog, isClient } from './utils'
@@ -19,7 +20,7 @@ export interface NotificationData {
   type: NotificationType
   title: string
   message: string
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   priority?: 'low' | 'medium' | 'high'
 }
 
@@ -366,59 +367,82 @@ export async function createBatchNotifications(
 
 // Get upcoming appointments that need reminders
 export async function getUpcomingAppointmentsForReminders() {
-  const now = new Date()
-  const tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000)
-  const dayAfterTomorrow = new Date(now.getTime() + 48 * 60 * 60 * 1000)
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-  const { data, error } = await supabase
-    .from('appointments')
-    .select(`
-      id,
-      patient_id,
-      doctor_id,
-      date,
-      start_time,
-      status,
-      doctor:doctors(full_name),
-      patient:patients(full_name)
-    `)
-    .eq('status', 'confirmed')
-    .gte('date', now.toISOString().split('T')[0])
-    .lte('date', dayAfterTomorrow.toISOString().split('T')[0])
-    .order('date', { ascending: true })
-    .order('start_time', { ascending: true })
+    const now = new Date()
+    const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    
+    const { data: appointments, error } = await supabase
+      .from('appointments')
+      .select(`
+        *,
+        patient:patients!appointments_patient_id_fkey(email),
+        doctor:doctors!appointments_doctor_id_fkey(full_name)
+      `)
+      .gte('date', now.toISOString().split('T')[0])
+      .lte('date', nextDay.toISOString().split('T')[0])
+      .eq('status', 'confirmed')
 
-  if (error) {
-    console.error('Error fetching upcoming appointments:', error)
+    if (error) {
+      console.error('Error fetching appointments for reminders:', error)
+      return []
+    }
+
+    return appointments || []
+  } catch (error) {
+    console.error('Error in getUpcomingAppointmentsForReminders:', error)
     return []
   }
-
-  return data || []
 }
 
 // Create scheduled reminders for upcoming appointments
 export async function createScheduledReminders() {
-  const upcomingAppointments = await getUpcomingAppointmentsForReminders()
-  const now = new Date()
+  try {
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
 
-  for (const appointment of upcomingAppointments) {
-    const appointmentDateTime = new Date(`${appointment.date}T${appointment.start_time}`)
-    const hoursUntilAppointment = (appointmentDateTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+    // Get appointments happening in the next 24 hours
+    const now = new Date()
+    const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+    
+    const { data: appointments, error } = await supabase
+      .from('appointments')
+      .select(`
+        *,
+        patient:patients!appointments_patient_id_fkey(email),
+        doctor:doctors!appointments_doctor_id_fkey(full_name)
+      `)
+      .gte('date', now.toISOString().split('T')[0])
+      .lte('date', nextDay.toISOString().split('T')[0])
+      .eq('status', 'confirmed')
 
-    // Send reminder if appointment is within 24 hours and we haven't sent one recently
-    if (hoursUntilAppointment <= 24 && hoursUntilAppointment > 0) {
-      try {
-        const doctorName = (appointment.doctor as any)?.full_name || 'your doctor'
+    if (error) {
+      console.error('Error fetching appointments for reminders:', error)
+      return
+    }
+
+    for (const appointment of appointments || []) {
+      const appointmentDate = new Date(`${appointment.date}T${appointment.start_time}`)
+      const hoursUntilAppointment = Math.floor((appointmentDate.getTime() - now.getTime()) / (1000 * 60 * 60))
+
+      // Send reminder if appointment is within 24 hours
+      if (hoursUntilAppointment <= 24 && hoursUntilAppointment > 0) {
         await createAppointmentReminderNotification(
           appointment.patient_id,
-          doctorName,
+          appointment.doctor?.full_name || 'Your doctor',
           appointment.date,
           appointment.start_time,
-          Math.floor(hoursUntilAppointment)
+          hoursUntilAppointment
         )
-      } catch (error) {
-        console.error(`Failed to create reminder for appointment ${appointment.id}:`, error)
       }
     }
+  } catch (error) {
+    console.error('Error creating scheduled reminders:', error)
   }
 } 

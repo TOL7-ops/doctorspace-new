@@ -1,5 +1,4 @@
 import { createServerSupabase } from './supabase-server'
-import type { User, Doctor, Appointment, Message } from '@/types'
 
 export async function getCurrentUserServer() {
   try {

@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useState } from 'react';
 
-export function ServiceCard({ icon: Icon, name, href, onClick }: { icon: any; name: string; href: string; onClick?: () => void }) {
+export function ServiceCard({ icon: Icon, name, href, onClick }: { icon: React.ComponentType<{ className?: string }>; name: string; href: string; onClick?: () => void }) {
   const [showTooltip, setShowTooltip] = useState(false);
   return (
     <div className="relative group">

@@ -1,20 +1,16 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from 'react'
-import { Search, Bell, User, X, Settings, LogOut, Mail, Calendar, Check, Trash2, Eye } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { ThemeToggle } from '@/components/ui/theme-toggle'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
 import { useNotifications } from '@/lib/hooks/useNotifications'
 import { NotificationsSheet } from '@/components/NotificationsSheet'
 import { UserSheet } from '@/components/UserSheet'
-import { Database } from '@/types/database.types'
 
 // type Notification = Database['public']['Tables']['notifications']['Row']
 
@@ -22,8 +18,7 @@ export function DashboardHeader() {
   const router = useRouter()
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
-  const [mounted, setMounted] = useState(false)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<{ id: string; email: string; full_name?: string; avatar_url?: string; created_at?: string } | null>(null)
   
   const searchRef = useRef<HTMLInputElement>(null)
 
@@ -31,7 +26,17 @@ export function DashboardHeader() {
   useEffect(() => {
     const getCurrentUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      setCurrentUser(user)
+      if (user && user.email) {
+        setCurrentUser({
+          id: user.id,
+          email: user.email,
+          full_name: user.user_metadata?.full_name,
+          avatar_url: user.user_metadata?.avatar_url,
+          created_at: user.created_at
+        })
+      } else {
+        setCurrentUser(null)
+      }
     }
     getCurrentUser()
   }, [])
@@ -39,18 +44,13 @@ export function DashboardHeader() {
   // Use real notifications hook
   const {
     notifications,
-    loading: notificationsLoading,
-    unreadCount,
     markAsRead,
     markAllAsRead,
     deleteNotification,
     clearAllNotifications
   } = useNotifications(currentUser?.id || '')
 
-  // Ensure component is mounted before rendering interactive elements
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+
 
   // Focus search input when opened
   useEffect(() => {
@@ -116,17 +116,6 @@ export function DashboardHeader() {
     } else {
       return date.toLocaleDateString()
     }
-  }
-
-  const getNotificationIcon = (title: string) => {
-    const lowerTitle = title.toLowerCase()
-    if (lowerTitle.includes('urgent') || lowerTitle.includes('cancelled')) {
-      return '🔴'
-    }
-    if (lowerTitle.includes('reminder') || lowerTitle.includes('upcoming')) {
-      return '🔵'
-    }
-    return '⚪'
   }
 
   return (

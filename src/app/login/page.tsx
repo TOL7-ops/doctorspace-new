@@ -1,39 +1,38 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
+import Link from 'next/link';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard';
-  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-      if (error) throw error;
-      if (data?.session) {
-        toast.success('Login successful!');
-        router.push(redirectTo);
+
+      if (error) {
+        toast.error(error.message);
       } else {
-        throw new Error('No session created');
+        toast.success('Signed in successfully!');
+        router.push('/dashboard');
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Login failed');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -110,7 +109,7 @@ export default function LoginPage() {
             Create Account
           </Link>
           <p className="text-xs text-muted-foreground text-center mt-2">
-            Don't want to use a password?{' '}
+            Don&apos;t want to use a password?{' '}
             <Link href="/magic-link" className="underline hover:text-foreground transition focus:outline-none">
               Use magic link
             </Link>

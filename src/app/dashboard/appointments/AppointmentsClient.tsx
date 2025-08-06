@@ -9,7 +9,7 @@ import { CalendarIcon, ClockIcon, UserIcon, X, Calendar, Star, Download, Refresh
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
-import { cancelAppointment, rescheduleAppointment, submitRating, canModifyAppointment } from '@/lib/appointment-management'
+import { cancelAppointment, rescheduleAppointment, submitRating } from '@/lib/appointment-management'
 import { createAppointmentNotification, createNotification } from '@/lib/notifications'
 import { ConfirmationModal } from '@/components/ui/confirmation-modal'
 import { RescheduleModal } from '@/components/RescheduleModal'
@@ -326,7 +326,7 @@ export default function AppointmentsClient({
         }
       } catch (notificationError) {
         console.error(`Error creating clear ${clearHistoryModal.tab} notification:`, notificationError);
-        // Don't fail the clearing if notification fails
+        // Don&apos;t fail the clearing if notification fails
       }
     }
 
@@ -385,7 +385,7 @@ export default function AppointmentsClient({
           console.log('✅ Rebook notification created successfully');
         } catch (notificationError) {
           console.error('Error creating rebook notification:', notificationError);
-          // Don't fail the rebooking if notification fails
+          // Don&apos;t fail the rebooking if notification fails
         }
       }
 
@@ -685,10 +685,10 @@ export default function AppointmentsClient({
                 </h3>
                 <p className="text-muted-foreground">
                   {activeTab === 'upcoming' 
-                    ? "You don't have any upcoming appointments scheduled."
+                    ? "You don&apos;t have any upcoming appointments scheduled."
                     : activeTab === 'past'
-                    ? "You don't have any past appointments."
-                    : "You don't have any cancelled appointments."
+                    ? "You don&apos;t have any past appointments."
+                    : "You don&apos;t have any cancelled appointments."
                   }
                 </p>
               </div>
