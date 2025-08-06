@@ -1,5 +1,8 @@
-import { NextResponse } from 'next/server';
-import { createServerSupabase } from '@/lib/supabase-server';
+import { NextResponse } from 'next/server'
+import { createServerSupabase } from '@/lib/supabase-server'
+
+// Force this API route to be dynamic
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
   try {

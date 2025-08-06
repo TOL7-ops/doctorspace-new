@@ -1,11 +1,13 @@
-import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { NextResponse } from 'next/server'
+import { createServerSupabase } from '@/lib/supabase-server'
+
+// Force this API route to be dynamic
+export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
   try {
     // Create Supabase client for server-side operations
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createServerSupabase();
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -86,7 +88,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createServerSupabase();
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -147,7 +149,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createServerSupabase();
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();
@@ -227,7 +229,7 @@ export async function DELETE(request: Request) {
   try {
     console.log('🗑️ DELETE request received');
     
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createServerSupabase();
     
     // Get the current user
     const { data: { user }, error: userError } = await supabase.auth.getUser();

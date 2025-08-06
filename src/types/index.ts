@@ -69,4 +69,7 @@ export interface TimeSlot {
   date: string;
   start_time: string;
   is_available: boolean;
-} 
+}
+
+// Patient is essentially a User in the context of appointments
+export type Patient = User; 

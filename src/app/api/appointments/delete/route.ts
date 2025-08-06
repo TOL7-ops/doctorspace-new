@@ -1,5 +1,8 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+// Force this API route to be dynamic
+export const dynamic = 'force-dynamic';
 
 export async function DELETE(request: Request) {
   try {

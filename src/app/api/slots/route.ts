@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getAvailableSlots } from '@/lib/actions';
 
+// Force this API route to be dynamic
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);

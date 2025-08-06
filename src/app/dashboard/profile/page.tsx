@@ -5,6 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { User, Mail, Phone, Shield, Edit } from 'lucide-react'
 
+// Force this page to be dynamic since it uses authentication
+export const dynamic = 'force-dynamic';
+
 export default async function ProfilePage() {
   const user = await getCurrentUserServer()
   if (!user) {

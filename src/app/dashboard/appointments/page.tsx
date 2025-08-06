@@ -4,6 +4,9 @@ import { redirect } from 'next/navigation'
 import AppointmentsClient from './AppointmentsClient'
 import { Skeleton } from '@/components/ui/skeleton'
 
+// Force this page to be dynamic since it uses authentication
+export const dynamic = 'force-dynamic';
+
 function AppointmentsSkeleton() {
   return (
     <div className="space-y-6">
