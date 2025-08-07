@@ -106,7 +106,8 @@ export function InboxClient() {
             </h3>
           </div>
           <p className="text-blue-700 dark:text-blue-300 text-sm">
-            We're working hard to bring you a better messaging experience. Check back soon!
+            We&apos;re working hard to bring you a full-featured messaging experience.
+            Check back soon for updates!
           </p>
         </div>
       )}

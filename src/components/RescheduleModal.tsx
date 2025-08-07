@@ -100,7 +100,7 @@ export function RescheduleModal({
     } else {
       setAvailableSlots(defaultTimeSlots)
     }
-  }, [selectedDate, appointment.doctor_id, fetchAvailableSlots])
+  }, [selectedDate, appointment.doctor_id, fetchAvailableSlots, defaultTimeSlots])
 
   const handleReschedule = async () => {
     if (!selectedDate || !selectedTime) {

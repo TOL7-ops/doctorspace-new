@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -56,6 +56,18 @@ export default function DoctorAppointmentPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Debug state
+  useEffect(() => {
+    console.log('📊 Current state:', {
+      doctorId,
+      selectedDate,
+      availableSlotsCount: availableSlots.length,
+      selectedTime,
+      slotsLoading,
+      bookingLoading
+    });
+  }, [doctorId, selectedDate, availableSlots.length, selectedTime, slotsLoading, bookingLoading]);
+
   // Generate dates for the next 30 days
   const availableDates = Array.from({ length: 30 }, (_, i) => {
     const date = new Date();
@@ -63,17 +75,7 @@ export default function DoctorAppointmentPage() {
     return format(date, 'yyyy-MM-dd');
   });
 
-  useEffect(() => {
-    fetchDoctorData();
-  }, [doctorId]);
-
-  useEffect(() => {
-    if (selectedDate) {
-      fetchAvailableSlots();
-    }
-  }, [selectedDate, doctorId]);
-
-  const fetchDoctorData = async () => {
+  const fetchDoctorData = useCallback(async () => {
     try {
       setLoading(true);
       
@@ -84,54 +86,71 @@ export default function DoctorAppointmentPage() {
         .eq('id', doctorId)
         .single();
 
-      if (doctorError) {
-        toast.error('Doctor not found');
-        router.push('/dashboard');
-        return;
-      }
-
+      if (doctorError) throw doctorError;
       setDoctor(doctorData);
 
       // Fetch appointment types
       const { data: typesData, error: typesError } = await supabase
         .from('appointment_types')
-        .select('*')
-        .order('duration');
+        .select('*');
 
-      if (typesError) {
-        console.error('Error fetching appointment types:', typesError);
-      } else {
-        setAppointmentTypes(typesData || []);
-      }
+      if (typesError) throw typesError;
+      setAppointmentTypes(typesData);
+
     } catch (error) {
-      console.error('Error fetching doctor data:', error);
+      console.error('Error fetching data:', error);
       toast.error('Failed to load doctor information');
     } finally {
       setLoading(false);
     }
-  };
+  }, [doctorId]);
 
-  const fetchAvailableSlots = async () => {
+  const fetchAvailableSlots = useCallback(async () => {
     if (!selectedDate) return;
-
+    
+    console.log('🔍 Fetching slots for:', { doctorId, selectedDate });
+    
     try {
       setSlotsLoading(true);
-      const response = await fetch(`/api/slots?doctorId=${doctorId}&date=${selectedDate}`);
+      
+      const url = `/api/slots?doctorId=${doctorId}&date=${selectedDate}`;
+      console.log('📡 Making request to:', url);
+      
+      const response = await fetch(url);
       const data = await response.json();
-
+      
+      console.log('📨 API Response:', {
+        ok: response.ok,
+        status: response.status,
+        data: data
+      });
+      
       if (response.ok) {
-        setAvailableSlots(data);
+        const slots = data.availableSlots || data || [];
+        console.log('✅ Setting available slots:', { count: slots.length, slots });
+        setAvailableSlots(slots);
       } else {
-        console.error('Error fetching slots:', data.error);
-        toast.error('Failed to load available time slots');
+        console.error('❌ API Error:', data);
+        throw new Error(data.error || 'Failed to fetch slots');
       }
     } catch (error) {
-      console.error('Error fetching slots:', error);
+      console.error('❌ Error fetching slots:', error);
       toast.error('Failed to load available time slots');
+      setAvailableSlots([]);
     } finally {
       setSlotsLoading(false);
     }
-  };
+  }, [doctorId, selectedDate]);
+
+  useEffect(() => {
+    fetchDoctorData();
+  }, [fetchDoctorData]);
+
+  useEffect(() => {
+    if (selectedDate) {
+      fetchAvailableSlots();
+    }
+  }, [fetchAvailableSlots, selectedDate]);
 
   const handleBookAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -450,9 +469,16 @@ export default function DoctorAppointmentPage() {
                           ))}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">
-                          No available slots for this date. Please select another date.
-                        </p>
+                        <div className="text-center py-8 px-4 border-2 border-dashed border-gray-300 rounded-lg">
+                          <div className="space-y-2">
+                            <div className="text-2xl">⏰</div>
+                            <h3 className="text-sm font-medium text-foreground">No available slots</h3>
+                            <p className="text-xs text-muted-foreground">
+                              All time slots are booked for {format(new Date(selectedDate), 'EEEE, MMMM d')}.<br />
+                              Please try selecting a different date.
+                            </p>
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}

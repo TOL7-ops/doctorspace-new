@@ -19,6 +19,19 @@ export function useEnhancedNotifications(userId: string) {
   const [error, setError] = useState<string | null>(null)
   const [unreadCount, setUnreadCount] = useState(0)
 
+  // Play notification sound
+  const playNotificationSound = () => {
+    try {
+      const audio = new Audio('/notification.mp3')
+      audio.volume = 0.5
+      audio.play().catch(err => {
+        console.log('Could not play notification sound:', err)
+      })
+    } catch (err) {
+      console.log('Audio not supported:', err)
+    }
+  }
+
   // Determine notification priority and type
   const getNotificationMetadata = (notification: Notification): { priority: 'low' | 'medium' | 'high', type: 'appointment' | 'message' | 'system' | 'reminder' } => {
     const title = notification.title?.toLowerCase() || ''
@@ -63,7 +76,7 @@ export function useEnhancedNotifications(userId: string) {
   }
 
   // Transform notification data
-  const transformNotification = (notification: Notification): EnhancedNotification => {
+  const transformNotification = useCallback((notification: Notification): EnhancedNotification => {
     const { priority, type } = getNotificationMetadata(notification)
     return {
       ...notification,
@@ -71,7 +84,7 @@ export function useEnhancedNotifications(userId: string) {
       priority,
       type
     }
-  }
+  }, [])
 
   // Fetch notifications using the API endpoint
   const fetchNotifications = useCallback(async () => {
@@ -80,55 +93,44 @@ export function useEnhancedNotifications(userId: string) {
     try {
       setLoading(true)
       setError(null)
-      
-      const response = await fetch('/api/notifications', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      })
 
+      const response = await fetch(`/api/notifications?userId=${userId}`)
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
-
+      
       const result = await response.json()
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to fetch notifications')
-      }
-
       const enhancedNotifications = (result.data || []).map(transformNotification)
+      
       setNotifications(enhancedNotifications)
-      setUnreadCount(result.stats?.unread || 0)
+      setUnreadCount(enhancedNotifications.filter(n => !n.read).length)
       
-    } catch (err) {
-      console.error('Error fetching notifications:', err)
-      setError(err instanceof Error ? err.message : 'Failed to fetch notifications')
+    } catch (err: unknown) {
+      console.error('API fetch failed, trying direct supabase query:', err)
+      setError(err instanceof Error ? err.message : 'Unknown error')
       
-      // Fallback to direct Supabase query if API fails
+      // Fallback to direct supabase query
       try {
-        console.log('Falling back to direct Supabase query...')
-        const { data, error } = await supabase
+        const { data, error: supabaseError } = await supabase
           .from('notifications')
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false })
-          .limit(50)
 
-        if (error) throw error
+        if (supabaseError) throw supabaseError
 
         const enhancedNotifications = (data || []).map(transformNotification)
         setNotifications(enhancedNotifications)
         setUnreadCount(enhancedNotifications.filter(n => !n.read).length)
-        setError(null) // Clear error if fallback succeeds
+        
       } catch (fallbackError) {
         console.error('Fallback also failed:', fallbackError)
       }
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, transformNotification])
 
   // Real-time subscription
   useEffect(() => {
@@ -145,48 +147,42 @@ export function useEnhancedNotifications(userId: string) {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
+          console.log('Real-time notification update:', payload)
+          
           if (payload.eventType === 'INSERT') {
             const newNotification = transformNotification(payload.new as Notification)
             setNotifications(prev => [newNotification, ...prev])
             setUnreadCount(prev => prev + 1)
             
-            // Show toast for high priority notifications
-            if (newNotification.priority === 'high') {
-              toast.error(`🚨 ${newNotification.title}`, {
-                duration: 5000,
-                position: 'top-right'
-              })
-            } else {
-              toast.success(`🔔 ${newNotification.title}`, {
-                duration: 3000,
-                position: 'top-right'
-              })
-            }
+            // Play notification sound
+            playNotificationSound()
+            
+            // Show toast notification
+            toast(`New notification: ${newNotification.title}`, {
+              icon: '🔔',
+              duration: 4000,
+            })
+            
           } else if (payload.eventType === 'UPDATE') {
             const updatedNotification = transformNotification(payload.new as Notification)
             setNotifications(prev => 
-              prev.map(notification => 
-                notification.id === updatedNotification.id 
-                  ? updatedNotification 
-                  : notification
-              )
+              prev.map(n => n.id === updatedNotification.id ? updatedNotification : n)
             )
-            // Recalculate unread count
-            setNotifications(prev => {
-              const newUnreadCount = prev.filter(n => !n.read).length
-              setUnreadCount(newUnreadCount)
-              return prev
-            })
+            
+            // Update unread count if read status changed
+            if (updatedNotification.read && !notifications.find(n => n.id === updatedNotification.id)?.read) {
+              setUnreadCount(prev => Math.max(0, prev - 1))
+            }
+            
           } else if (payload.eventType === 'DELETE') {
-            setNotifications(prev => 
-              prev.filter(notification => notification.id !== payload.old.id)
-            )
-            // Recalculate unread count
-            setNotifications(prev => {
-              const newUnreadCount = prev.filter(n => !n.read).length
-              setUnreadCount(newUnreadCount)
-              return prev
-            })
+            const deletedId = payload.old?.id
+            if (deletedId) {
+              const wasUnread = notifications.find(n => n.id === deletedId)?.read === false
+              setNotifications(prev => prev.filter(n => n.id !== deletedId))
+              if (wasUnread) {
+                setUnreadCount(prev => Math.max(0, prev - 1))
+              }
+            }
           }
         }
       )
@@ -195,7 +191,7 @@ export function useEnhancedNotifications(userId: string) {
     return () => {
       supabase.removeChannel(channel)
     }
-  }, [userId])
+  }, [userId, transformNotification, notifications])
 
   // Initial fetch
   useEffect(() => {
@@ -217,20 +213,13 @@ export function useEnhancedNotifications(userId: string) {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error('Failed to mark notification as read')
       }
 
-      const result = await response.json()
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to mark notification as read')
-      }
-
+      // Optimistically update the notification
       setNotifications(prev => 
-        prev.map(notification => 
-          notification.id === notificationId 
-            ? { ...notification, read: true }
-            : notification
+        prev.map(n => 
+          n.id === notificationId ? { ...n, read: true } : n
         )
       )
       setUnreadCount(prev => Math.max(0, prev - 1))
@@ -238,7 +227,7 @@ export function useEnhancedNotifications(userId: string) {
       console.error('Error marking notification as read:', err)
       toast.error('Failed to mark notification as read')
     }
-  }, [transformNotification])
+  }, [])
 
   // Mark all notifications as read using API
   const markAllAsRead = useCallback(async () => {
@@ -257,7 +246,7 @@ export function useEnhancedNotifications(userId: string) {
     }
   }, [notifications, markAsRead])
 
-  // Delete notification using API
+  // Delete single notification using API
   const deleteNotification = useCallback(async (notificationId: string) => {
     try {
       const response = await fetch(`/api/notifications?id=${notificationId}`, {
@@ -265,32 +254,22 @@ export function useEnhancedNotifications(userId: string) {
       })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
+        throw new Error('Failed to delete notification')
       }
 
-      const result = await response.json()
-      
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to delete notification')
+      // Optimistically remove the notification
+      const wasUnread = notifications.find(n => n.id === notificationId)?.read === false
+      setNotifications(prev => prev.filter(n => n.id !== notificationId))
+      if (wasUnread) {
+        setUnreadCount(prev => Math.max(0, prev - 1))
       }
-
-      setNotifications(prev => 
-        prev.filter(notification => notification.id !== notificationId)
-      )
-      
-      // Recalculate unread count
-      setNotifications(prev => {
-        const newUnreadCount = prev.filter(n => !n.read).length
-        setUnreadCount(newUnreadCount)
-        return prev
-      })
       
       toast.success('Notification deleted')
     } catch (err) {
       console.error('Error deleting notification:', err)
       toast.error('Failed to delete notification')
     }
-  }, [transformNotification])
+  }, [notifications])
 
   // Clear all notifications using API
   const clearAllNotifications = useCallback(async () => {

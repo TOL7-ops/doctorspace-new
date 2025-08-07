@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { DoctorCard } from '@/components/DoctorCard'
+import { WelcomeText } from '@/components/WelcomeText'
 import { ChevronLeft, ChevronRight, Calendar, Clock, User } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 
@@ -95,9 +96,10 @@ export default function DashboardPage() {
       <div className="container mx-auto px-4 py-6 space-y-8">
         {/* Welcome Section */}
         <section className="space-y-4">
-          <h1 className="text-3xl font-bold text-foreground sm:text-4xl">
-            Welcome to DoctorSpace
-          </h1>
+          <WelcomeText 
+            text="WELCOME TO DOCTORSPACE"
+            className="text-3xl font-bold text-foreground sm:text-4xl lg:text-5xl"
+          />
           <p className="text-lg text-muted-foreground max-w-2xl">
             Find and book appointments with qualified healthcare professionals in your area.
           </p>

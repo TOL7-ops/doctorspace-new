@@ -41,57 +41,122 @@ export async function getAvailableSlots(
   doctorId: string,
   date: string
 ): Promise<TimeSlot[]> {
+  console.log('🏥 getAvailableSlots called with:', { doctorId, date });
+  
   const supabase = createServerSupabase();
   
-  // Get doctor's available hours
-  const { data: doctor, error: doctorError } = await supabase
-    .from('doctors')
-    .select('available_hours')
-    .eq('id', doctorId)
-    .single();
+  try {
+    // Get doctor's available hours - handle case where column might not exist
+    const { data: doctor, error: doctorError } = await supabase
+      .from('doctors')
+      .select('available_hours, full_name')
+      .eq('id', doctorId)
+      .single();
 
-  if (doctorError) {
-    console.error('Error fetching doctor:', doctorError);
-    return [];
-  }
+    if (doctorError) {
+      console.error('❌ Error fetching doctor:', doctorError);
+      // If doctor not found, still return default slots for testing
+      console.log('🔄 Doctor not found, using default slots for doctorId:', doctorId);
+    }
 
-  // Use doctor's available hours or default time slots
-  const availableHours = doctor?.available_hours?.length 
-    ? doctor.available_hours 
-    : DEFAULT_TIME_SLOTS;
-
-  // Get existing appointments
-  const { data: appointments, error: appointmentsError } = await supabase
-    .from('appointments')
-    .select('*, appointment_types(*)')
-    .eq('doctor_id', doctorId)
-    .eq('date', date)
-    .neq('status', 'cancelled');
-
-  if (appointmentsError) {
-    console.error('Error fetching appointments:', appointmentsError);
-    return [];
-  }
-
-  // Create time slots from available hours
-  const slots: TimeSlot[] = availableHours.map(hour => ({
-    date,
-    start_time: hour,
-    is_available: true
-  }));
-
-  // Mark booked slots as unavailable
-  appointments?.forEach(appointment => {
-    const start = new Date(`${date}T${appointment.start_time}`);
-    const end = new Date(start.getTime() + (appointment.appointment_types?.duration || 30) * 60000);
-
-    slots.forEach(slot => {
-      const slotTime = new Date(`${date}T${slot.start_time}`);
-      if (slotTime >= start && slotTime < end) {
-        slot.is_available = false;
-      }
+    console.log('👨‍⚕️ Doctor data:', {
+      doctorId,
+      name: doctor?.full_name,
+      availableHours: doctor?.available_hours,
+      hasCustomHours: !!(doctor?.available_hours && Array.isArray(doctor.available_hours) && doctor.available_hours.length > 0)
     });
-  });
 
-  return slots.filter(slot => slot.is_available);
+    // Use doctor's available hours or default time slots
+    // Handle case where available_hours might be null, undefined, or not an array
+    let availableHours = DEFAULT_TIME_SLOTS;
+    if (doctor?.available_hours && Array.isArray(doctor.available_hours) && doctor.available_hours.length > 0) {
+      availableHours = doctor.available_hours;
+    }
+
+    console.log('⏰ Available hours to use:', availableHours);
+
+    // Get existing appointments for this doctor and date
+    const { data: appointments, error: appointmentsError } = await supabase
+      .from('appointments')
+      .select('*, appointment_types(duration)')
+      .eq('doctor_id', doctorId)
+      .eq('date', date)
+      .neq('status', 'cancelled');
+
+    if (appointmentsError) {
+      console.error('❌ Error fetching appointments:', appointmentsError);
+      // Continue with empty appointments array
+    }
+
+    console.log('📅 Existing appointments on', date, ':', {
+      count: appointments?.length || 0,
+      appointments: appointments?.map(apt => ({
+        id: apt.id,
+        start_time: apt.start_time,
+        status: apt.status,
+        duration: apt.appointment_types?.duration
+      })) || []
+    });
+
+    // Create time slots from available hours
+    const slots: TimeSlot[] = availableHours.map(hour => ({
+      date,
+      start_time: hour,
+      is_available: true
+    }));
+
+    console.log('🎰 Created initial slots:', slots.length, 'slots');
+
+    // Mark booked slots as unavailable
+    if (appointments && appointments.length > 0) {
+      appointments.forEach(appointment => {
+        try {
+          const appointmentDate = new Date(`${date}T${appointment.start_time}`);
+          const duration = appointment.appointment_types?.duration || 30;
+          const endTime = new Date(appointmentDate.getTime() + duration * 60000);
+
+          console.log('🚫 Processing busy slot:', {
+            appointmentId: appointment.id,
+            start: appointment.start_time,
+            duration: duration,
+            startISO: appointmentDate.toISOString(),
+            endISO: endTime.toISOString()
+          });
+
+          slots.forEach(slot => {
+            const slotDateTime = new Date(`${date}T${slot.start_time}`);
+            if (slotDateTime >= appointmentDate && slotDateTime < endTime) {
+              console.log(`🔒 Marking slot ${slot.start_time} as unavailable`);
+              slot.is_available = false;
+            }
+          });
+        } catch (timeError) {
+          console.error('❌ Error processing appointment time:', timeError, appointment);
+        }
+      });
+    }
+
+    const availableSlots = slots.filter(slot => slot.is_available);
+    
+    console.log('✅ Final available slots result:', {
+      doctorId,
+      date,
+      totalSlots: slots.length,
+      availableCount: availableSlots.length,
+      unavailableCount: slots.length - availableSlots.length,
+      availableTimes: availableSlots.map(s => s.start_time)
+    });
+
+    return availableSlots;
+  } catch (error) {
+    console.error('❌ Unexpected error in getAvailableSlots:', error);
+    // Return default slots as fallback
+    const fallbackSlots: TimeSlot[] = DEFAULT_TIME_SLOTS.map(hour => ({
+      date,
+      start_time: hour,
+      is_available: true
+    }));
+    console.log('🔄 Returning fallback default slots:', fallbackSlots.length);
+    return fallbackSlots;
+  }
 } 

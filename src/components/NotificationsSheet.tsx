@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Bell, Trash2, AlertTriangle, Info } from 'lucide-react';
 import {
   Sheet,
