@@ -6,6 +6,9 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
 import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { motion } from 'framer-motion';
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -20,6 +23,7 @@ function ResetPasswordForm() {
 
   // Get access token from URL (check multiple possible parameter names)
   const accessToken = searchParams.get('access_token') || searchParams.get('token') || searchParams.get('accessToken');
+  const refreshToken = searchParams.get('refresh_token') || null;
 
   useEffect(() => {
     console.log('All URL parameters:', Object.fromEntries(searchParams.entries()));
@@ -42,7 +46,7 @@ function ResetPasswordForm() {
         console.log('Setting session with access token...');
         const { data, error } = await supabase.auth.setSession({
           access_token: accessToken,
-          refresh_token: null,
+          refresh_token: refreshToken,
         });
 
         if (error) {
@@ -66,8 +70,12 @@ function ResetPasswordForm() {
     setError(null);
 
     // Validate passwords
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters long.');
+    const hasMinLength = password.length >= 8;
+    const hasNumber = /\d/.test(password);
+    const hasSymbol = /[^A-Za-z0-9]/.test(password);
+
+    if (!hasMinLength || !hasNumber || !hasSymbol) {
+      setError('Password must be at least 8 characters and include a number and a symbol.');
       setLoading(false);
       return;
     }
@@ -146,12 +154,12 @@ function ResetPasswordForm() {
           </Link>
         </div>
 
-        <h1 className="text-2xl font-bold mb-2 text-center text-foreground">Reset your password</h1>
-        <p className="text-muted-foreground mb-6 text-center">Enter your new password below</p>
+        <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="text-2xl font-bold mb-2 text-center text-foreground">Reset your password</motion.h1>
+        <motion.p initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, delay: 0.05 }} className="text-muted-foreground mb-6 text-center">Enter your new password below</motion.p>
 
-        <form onSubmit={handleSubmit} className="w-full">
+        <motion.form onSubmit={handleSubmit} className="w-full" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35, delay: 0.1 }}>
           {error && (
-            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800" role="alert">
               <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
@@ -161,15 +169,15 @@ function ResetPasswordForm() {
               New Password
             </label>
             <div className="relative">
-              <input
+              <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition pr-10"
+                className="pr-10"
                 placeholder="Enter your new password"
                 required
-                minLength={6}
+                minLength={8}
                 aria-label="New Password"
               />
               <button
@@ -182,7 +190,7 @@ function ResetPasswordForm() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              Password must be at least 6 characters long
+              At least 8 characters, include a number and a symbol
             </p>
           </div>
 
@@ -191,12 +199,12 @@ function ResetPasswordForm() {
               Confirm New Password
             </label>
             <div className="relative">
-              <input
+              <Input
                 id="confirmPassword"
                 type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition pr-10"
+                className="pr-10"
                 placeholder="Confirm your new password"
                 required
                 aria-label="Confirm New Password"
@@ -212,15 +220,15 @@ function ResetPasswordForm() {
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={loading || !accessToken}
-            className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg font-semibold shadow hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
+            className="w-full"
           >
             {loading ? 'Updating password...' : 'Update Password'}
-          </button>
+          </Button>
 
-          <div className="text-center">
+          <div className="text-center mt-4">
             <p className="text-sm text-muted-foreground">
               Remember your password?{' '}
               <Link href="/login" className="text-primary hover:underline font-medium">
@@ -228,7 +236,7 @@ function ResetPasswordForm() {
               </Link>
             </p>
           </div>
-        </form>
+        </motion.form>
       </div>
     </div>
   );

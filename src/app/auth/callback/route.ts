@@ -8,17 +8,20 @@ export async function GET(request: Request) {
   const next = requestUrl.searchParams.get('next') || '/dashboard';
   const type = requestUrl.searchParams.get('type');
   const accessToken = requestUrl.searchParams.get('access_token');
+  const refreshToken = requestUrl.searchParams.get('refresh_token');
 
   console.log('Auth callback - code:', code ? 'present' : 'missing');
   console.log('Auth callback - next:', next);
   console.log('Auth callback - type:', type);
   console.log('Auth callback - access_token:', accessToken ? 'present' : 'missing');
+  console.log('Auth callback - refresh_token:', refreshToken ? 'present' : 'missing');
 
   // Handle password reset flow - check for access_token first
   if (accessToken) {
     console.log('Auth callback: Found access_token, redirecting to reset-password');
     const resetUrl = new URL('/reset-password', requestUrl.origin);
     resetUrl.searchParams.set('access_token', accessToken);
+    if (refreshToken) resetUrl.searchParams.set('refresh_token', refreshToken);
     return NextResponse.redirect(resetUrl);
   }
 
