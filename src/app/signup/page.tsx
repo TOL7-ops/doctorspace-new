@@ -1,101 +1,68 @@
-'use client';
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
-import { createUserProfile } from '@/lib/auth-client';
-import { toast } from 'react-hot-toast';
-import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+"use client";
 
-const months = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
-];
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { toast } from "react-hot-toast";
+import Link from "next/link";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export default function SignUpPage() {
   const router = useRouter();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [month, setMonth] = useState('');
-  const [day, setDay] = useState('');
-  const [year, setYear] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const isNextEnabled = name && email && month && day && year;
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const isFormValid = Boolean(firstName && lastName && email && password);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
 
     try {
-      const dateOfBirth = `${year}-${String(months.indexOf(month) + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      
-      // Generate a secure password
-      const password = Math.random().toString(36).slice(-10) + 'A!';
-      
-
-      
-      const result = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            full_name: name,
-            phone_number: 'Not provided', // Default since we're not collecting phone
-            date_of_birth: dateOfBirth,
+            first_name: firstName,
+            last_name: lastName,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
         },
       });
 
-      if (result.error) {
-        console.error('Signup error details:', {
-          message: result.error.message,
-          status: result.error.status,
-          name: result.error.name,
-          details: result.error
-        });
-        
-        // Provide more specific error messages
-        let errorMessage = 'Signup failed. Please try again.';
-        if (result.error.message.includes('Database error')) {
-          errorMessage = 'Database error during signup. Please check your information and try again.';
-        } else if (result.error.message.includes('duplicate key value violates unique constraint "users_email_key"')) {
-          errorMessage = 'An account with this email already exists. Please try signing in instead.';
-          toast.error('An account with this email already exists. Please try signing in instead.');
-          setLoading(false);
-          return;
-        } else if (result.error.message.includes('email')) {
-          errorMessage = 'Please check your email address and try again.';
-        } else if (result.error.message.includes('password')) {
-          errorMessage = 'Please check your password requirements and try again.';
-        } else if (result.error.message.includes('duplicate')) {
-          errorMessage = 'This account already exists. Please try signing in instead.';
+      if (error) {
+        // Map common errors to user-friendly messages
+        let message = error.message || "Signup failed. Please try again.";
+        const lower = message.toLowerCase();
+        if (lower.includes("users_email_key") || lower.includes("already registered") || lower.includes("already exists")) {
+          message = "An account with this email already exists. Please sign in instead.";
+        } else if (lower.includes("password")) {
+          message = "Please choose a stronger password (min 6 characters).";
+        } else if (lower.includes("email")) {
+          message = "Please enter a valid email address.";
         }
-        
-        toast.error(errorMessage);
+        setError(message);
+        toast.error(message);
         return;
       }
 
-      if (result.data.user) {
-        try {
-          // Manually create the patient profile as a backup
-          await createUserProfile(result.data.user.id, {
-            full_name: name,
-            phone_number: 'Not provided',
-            date_of_birth: dateOfBirth
-          });
-
-          toast.success('Account created successfully! Check your email for verification.');
-          router.push('/verify-email?email=' + encodeURIComponent(email));
-        } catch (profileError) {
-          console.error('Profile creation error:', profileError);
-          toast.error('Account created but profile setup failed. Please contact support.');
-        }
-      }
+      // Success
+      toast.success("Account created! Check your email to verify your account.");
+      router.push("/login");
     } catch (err) {
-      console.error('Signup error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred during signup';
-      toast.error(errorMessage);
+      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -113,101 +80,110 @@ export default function SignUpPage() {
             Back to login
           </Link>
         </div>
-        
+
         <h1 className="text-2xl font-bold mb-2 text-center text-foreground">Create your account</h1>
         <p className="text-muted-foreground mb-6 text-center">Sign up to get started</p>
-        
-        <form onSubmit={handleSubmit} className="w-full">
+
+        <form onSubmit={handleSubmit} className="w-full" aria-label="Create Account Form">
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800" role="alert">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+            </div>
+          )}
+
           <div className="mb-4">
-            <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1">
-              Full Name
+            <label htmlFor="firstName" className="block text-sm font-medium text-foreground mb-1">
+              First Name
             </label>
-            <input
-              id="name"
+            <Input
+              id="firstName"
+              name="firstName"
               type="text"
-              placeholder="Enter your full name"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+              placeholder="Enter your first name"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
               required
-              aria-label="Full Name"
+              aria-label="First Name"
+              autoComplete="given-name"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="lastName" className="block text-sm font-medium text-foreground mb-1">
+              Last Name
+            </label>
+            <Input
+              id="lastName"
+              name="lastName"
+              type="text"
+              placeholder="Enter your last name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              required
+              aria-label="Last Name"
+              autoComplete="family-name"
             />
           </div>
 
           <div className="mb-4">
             <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
-              Email Address
+              Email
             </label>
-            <input
+            <Input
               id="email"
+              name="email"
               type="email"
-              placeholder="Enter your email address"
+              placeholder="Enter your email"
               value={email}
-              onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+              onChange={(e) => setEmail(e.target.value)}
               required
-              aria-label="Email Address"
+              aria-label="Email"
+              autoComplete="email"
             />
           </div>
 
           <div className="mb-6">
-            <label className="block text-sm font-medium text-foreground mb-1">
-              Date of Birth
+            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
+              Password
             </label>
-            <p className="text-xs text-muted-foreground mb-2">
-              This will not be shown publicly. Confirm your own age, even if this account is for a business, a pet, or something else.
-            </p>
-            <div className="flex gap-2">
-              <select
-                value={month}
-                onChange={e => setMonth(e.target.value)}
-                className="flex-1 px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Create a password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
-                aria-label="Month"
+                aria-label="Password"
+                autoComplete="new-password"
+                className="pr-10"
+                minLength={6}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                aria-label={showPassword ? "Hide password" : "Show password"}
               >
-                <option value="">Month</option>
-                {months.map((m) => (
-                  <option key={m} value={m}>{m}</option>
-                ))}
-              </select>
-              <select
-                value={day}
-                onChange={e => setDay(e.target.value)}
-                className="w-1/3 px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
-                required
-                aria-label="Day"
-              >
-                <option value="">Day</option>
-                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                  <option key={d} value={d}>{d}</option>
-                ))}
-              </select>
-              <select
-                value={year}
-                onChange={e => setYear(e.target.value)}
-                className="w-1/3 px-3 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
-                required
-                aria-label="Year"
-              >
-                <option value="">Year</option>
-                {Array.from({ length: 120 }, (_, i) => new Date().getFullYear() - i).map((y) => (
-                  <option key={y} value={y}>{y}</option>
-                ))}
-              </select>
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
+            <p className="text-xs text-muted-foreground mt-1">At least 6 characters</p>
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={!isNextEnabled || loading}
-            className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg font-semibold shadow hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
+            disabled={!isFormValid || loading}
+            className="w-full"
+            aria-disabled={!isFormValid || loading}
           >
-            {loading ? 'Creating account...' : 'Create Account'}
-          </button>
+            {loading ? "Creating account..." : "Create Account"}
+          </Button>
 
-          <div className="text-center">
+          <div className="text-center mt-4">
             <p className="text-sm text-muted-foreground">
-              Already have an account?{' '}
+              Already have an account? {" "}
               <Link href="/login" className="text-primary hover:underline font-medium">
                 Sign in
               </Link>
