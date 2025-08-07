@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { BellIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { ExclamationTriangleIcon, InformationCircleIcon } from '@heroicons/react/24/solid';
+import { Bell, Trash2, AlertTriangle, Info } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -42,22 +41,11 @@ export function NotificationsSheet({
   
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  // Debug logging
-  useEffect(() => {
-    console.log('🔔 NotificationsSheet rendered with:', {
-      notificationsCount: notifications.length,
-      unreadCount,
-      open
-    });
-  }, [notifications.length, unreadCount, open]);
-
   const handleDelete = async (id: string) => {
-    console.log('🗑️ Deleting notification:', id);
     setDeletingId(id);
     try {
       if (onDelete) {
         await onDelete(id);
-        // Note: The notification should already be removed from UI due to optimistic updates
         toast.success('Notification removed');
       }
     } catch (error) {
@@ -69,12 +57,10 @@ export function NotificationsSheet({
   };
 
   const handleClearAll = async () => {
-    console.log('🧹 Clearing all notifications');
     try {
       if (onClear) {
         await onClear();
         setOpen(false);
-        // Note: The notifications should already be cleared from UI due to optimistic updates
         toast.success('All notifications cleared');
       }
     } catch (error) {
@@ -86,12 +72,12 @@ export function NotificationsSheet({
   const getNotificationIcon = (title: string) => {
     const lowerTitle = title.toLowerCase();
     if (lowerTitle.includes('urgent') || lowerTitle.includes('cancelled')) {
-      return <ExclamationTriangleIcon className="h-4 w-4 text-red-500" />;
+      return <AlertTriangle className="h-4 w-4 text-red-500" />;
     }
     if (lowerTitle.includes('reminder') || lowerTitle.includes('upcoming')) {
-      return <InformationCircleIcon className="h-4 w-4 text-blue-500" />;
+      return <Info className="h-4 w-4 text-blue-500" />;
     }
-    return <InformationCircleIcon className="h-4 w-4 text-gray-500" />;
+    return <Info className="h-4 w-4 text-gray-500" />;
   };
 
   const formatDate = (dateString: string) => {
@@ -108,27 +94,28 @@ export function NotificationsSheet({
     }
   };
 
-  console.log('🎯 Rendering NotificationsSheet component');
-
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="relative p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          className="flex items-center space-x-2 h-auto p-2 rounded-lg hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring relative"
           aria-label={`Notifications ${unreadCount > 0 ? `(${unreadCount} unread)` : ''}`}
-          onClick={() => console.log('🔔 Bell icon clicked!')}
         >
-          <BellIcon className="h-6 w-6 text-blue-600" />
-          {unreadCount > 0 && (
-            <span 
-              className="absolute -top-1 -right-1 w-3 h-3 bg-red-600 rounded-full border-2 border-white"
-              aria-label={`${unreadCount} unread notifications`}
-            />
-          )}
-          {/* VISIBLE SIGN - NEW SHEET COMPONENT */}
-          <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-green-500 rounded-full border border-white" title="NEW SHEET"></div>
+          <div className="relative">
+            <Bell className="h-6 w-6 text-muted-foreground" />
+            {unreadCount > 0 && (
+              <span 
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-600 text-white text-xs font-medium rounded-full flex items-center justify-center border-2 border-background"
+                aria-label={`${unreadCount} unread notifications`}
+              >
+                {unreadCount > 99 ? '99+' : unreadCount}
+              </span>
+            )}
+          </div>
+          <span className="hidden sm:block text-sm font-medium text-foreground">
+            Notifications
+          </span>
         </Button>
       </SheetTrigger>
       
@@ -173,7 +160,7 @@ export function NotificationsSheet({
             {notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 text-center">
                 <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
-                  <BellIcon className="h-8 w-8 text-gray-400" />
+                  <Bell className="h-8 w-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                   You&apos;re all caught up 🎉
@@ -241,7 +228,7 @@ export function NotificationsSheet({
                       {deletingId === notification.id ? (
                         <div className="h-3 w-3 animate-spin rounded-full border border-gray-400 border-t-transparent" />
                       ) : (
-                        <TrashIcon className="h-3 w-3" />
+                        <Trash2 className="h-3 w-3" />
                       )}
                     </Button>
                   </div>

@@ -3,9 +3,8 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { NotificationsSheet } from "@/components/NotificationsSheet";
-import { SimpleTest } from "@/components/SimpleTest";
 import { BottomNavigation } from "@/app/dashboard/BottomNavigation";
-import { UserIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { UserSheet } from "@/components/UserSheet";
 import { toast } from "react-hot-toast";
 
 interface Notification {
@@ -29,7 +28,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [user, setUser] = useState<LocalUser | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [profileOpen, setProfileOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -292,17 +290,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   };
 
-  const handleSignOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      router.replace("/login");
-    } catch (error) {
-      console.error("Error signing out:", error);
-      toast.error("Failed to sign out");
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -328,33 +315,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {/* Header */}
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          {/* Left side - App title */}
           <div className="flex items-center space-x-4">
-            <h1 className="text-xl font-bold text-foreground">DoctorSpace</h1>
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="text-xl font-bold text-foreground hover:text-primary transition-colors focus:outline-none focus:ring-2 focus:ring-ring rounded-md px-2 py-1"
+            >
+              DoctorSpace
+            </button>
           </div>
 
-          <div className="flex items-center space-x-4">
-            {/* Simple Test */}
-            <SimpleTest />
-            
-            {/* Inline Test Button */}
-            <button 
-              style={{
-                padding: '8px 16px',
-                backgroundColor: 'green',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '14px'
-              }}
-              onClick={() => {
-                console.log('🟢 Inline test button clicked!');
-                alert('Inline test button works!');
-              }}
-            >
-              🟢 INLINE TEST
-            </button>
-            
+          {/* Right side - Mobile responsive flex container */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Notifications Sheet */}
             <NotificationsSheet
               notifications={notifications}
@@ -364,39 +336,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               onDelete={handleDeleteNotification}
             />
 
-            {/* User Profile */}
-            <div className="relative">
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center space-x-2 p-2 rounded-lg hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
-                aria-label="User menu"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                  <UserIcon className="h-4 w-4 text-primary" />
-                </div>
-                <span className="hidden sm:block text-sm font-medium text-foreground">
-                  {user.full_name || user.email}
-                </span>
-                <ChevronDownIcon className="h-4 w-4 text-muted-foreground" />
-              </button>
-
-              {profileOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1 z-50">
-                  <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800">
-                    <p className="text-sm font-medium text-foreground">
-                      {user.full_name || 'User'}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                  </div>
-                  <button
-                    onClick={handleSignOut}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* User Sheet */}
+            <UserSheet user={user} />
           </div>
         </div>
       </header>

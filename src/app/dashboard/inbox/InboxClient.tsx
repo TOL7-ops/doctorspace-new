@@ -96,6 +96,21 @@ export function InboxClient() {
         onMarkAllAsRead={handleMarkAllAsRead}
       />
 
+      {/* Under Construction Banner */}
+      {messages.length === 0 && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-6 text-center">
+          <div className="flex items-center justify-center space-x-2 mb-2">
+            <span className="text-2xl">📥</span>
+            <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">
+              Inbox is under construction
+            </h3>
+          </div>
+          <p className="text-blue-700 dark:text-blue-300 text-sm">
+            We're working hard to bring you a better messaging experience. Check back soon!
+          </p>
+        </div>
+      )}
+
       {/* Messages */}
       <div className="space-y-4">
         {messages.length > 0 ? (

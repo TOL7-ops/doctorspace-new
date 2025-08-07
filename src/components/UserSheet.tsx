@@ -1,250 +1,211 @@
-"use client";
+"use client"
 
-import { useState, useEffect } from 'react';
-import { User, Settings, LogOut, Mail, Calendar, Shield, HelpCircle } from 'lucide-react';
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
+import { supabase } from '@/lib/supabase'
 import {
   Sheet,
   SheetContent,
+  SheetDescription,
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
-
-import { toast } from 'react-hot-toast';
-
-interface UserData {
-  id: string;
-  email: string;
-  full_name?: string;
-  avatar_url?: string;
-  created_at?: string;
-}
+} from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import {
+  User,
+  Settings,
+  LogOut,
+  Calendar,
+  MessageSquare,
+  HelpCircle,
+  Moon,
+  Sun,
+  UserIcon,
+  ChevronDownIcon
+} from 'lucide-react'
+import { toast } from 'react-hot-toast'
 
 interface UserSheetProps {
-  user: UserData | null;
-  onLogout: () => void;
-  onProfile: () => void;
-  onSettings: () => void;
-  onMessages?: () => void;
-  onAppointments?: () => void;
+  user: {
+    id: string
+    email: string
+    full_name?: string
+  }
 }
 
-export function UserSheet({
-  user,
-  onLogout,
-  onProfile,
-  onSettings,
-  onMessages,
-  onAppointments,
-}: UserSheetProps) {
-  const [open, setOpen] = useState(false);
+export function UserSheet({ user }: UserSheetProps) {
+  const router = useRouter()
+  const [open, setOpen] = useState(false)
+  const { theme, setTheme } = useTheme()
 
-  // Debug logging
-  useEffect(() => {
-    console.log('👤 UserSheet rendered with:', {
-      user: user ? { id: user.id, email: user.email, name: user.full_name } : null,
-      open
-    });
-  }, [user, open]);
-
-  const handleLogout = async () => {
-    console.log('🚪 Logging out user:', user?.email);
+  const handleSignOut = async () => {
     try {
-      await onLogout();
-      setOpen(false);
-      toast.success('Logged out successfully');
+      const { error } = await supabase.auth.signOut()
+      if (error) throw error
+      toast.success('Signed out successfully')
+      setOpen(false)
+      router.replace('/login')
     } catch (error) {
-      console.error('Error logging out:', error);
-      toast.error('Failed to log out');
+      console.error('Error signing out:', error)
+      toast.error('Failed to sign out')
     }
-  };
+  }
 
-  const handleProfile = () => {
-    console.log('👤 Navigating to profile');
-    onProfile();
-    setOpen(false);
-  };
+  const handleNavigation = (path: string) => {
+    setOpen(false)
+    router.push(path)
+  }
 
-  const handleSettings = () => {
-    console.log('⚙️ Navigating to settings');
-    onSettings();
-    setOpen(false);
-  };
+  const toggleDarkMode = (enabled: boolean) => {
+    setTheme(enabled ? 'dark' : 'light')
+    toast.success(`${enabled ? 'Dark' : 'Light'} mode enabled`)
+  }
 
-  const handleMessages = () => {
-    console.log('📧 Navigating to messages/inbox');
-    if (onMessages) {
-      onMessages();
-      setOpen(false);
+  const menuItems = [
+    {
+      icon: User,
+      label: 'Profile Settings',
+      action: () => handleNavigation('/dashboard/profile'),
+      description: 'Manage your personal information'
+    },
+    {
+      icon: Settings,
+      label: 'App Settings',
+      action: () => handleNavigation('/dashboard/settings'),
+      description: 'Configure your preferences'
+    },
+    {
+      icon: Calendar,
+      label: 'Appointments',
+      action: () => handleNavigation('/dashboard/appointments'),
+      description: 'View and manage appointments'
+    },
+    {
+      icon: MessageSquare,
+      label: 'Messages',
+      action: () => handleNavigation('/dashboard/inbox'),
+      description: 'Your inbox and conversations'
+    },
+    {
+      icon: HelpCircle,
+      label: 'Help & Support',
+      action: () => handleNavigation('/help'),
+      description: 'Get help and contact support'
     }
-  };
-
-  const handleAppointments = () => {
-    console.log('📅 Navigating to appointments');
-    if (onAppointments) {
-      onAppointments();
-      setOpen(false);
-    }
-  };
-
-  const getInitials = (name?: string, email?: string) => {
-    if (name) {
-      return name
-        .split(' ')
-        .map(n => n[0])
-        .join('')
-        .toUpperCase()
-        .slice(0, 2);
-    }
-    if (email) {
-      return email[0].toUpperCase();
-    }
-    return 'U';
-  };
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'Unknown';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
-
-  console.log('🎯 Rendering UserSheet component');
+  ]
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
         <Button
           variant="ghost"
-          size="icon"
-          className="relative p-2 rounded-full bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          aria-label="User profile"
-          onClick={() => console.log('👤 User icon clicked!')}
+          className="flex items-center space-x-2 h-auto p-2 rounded-lg hover:bg-accent transition-colors focus:outline-none focus:ring-2 focus:ring-ring"
+          aria-label="Open user menu"
         >
-          <User className="h-5 w-5 text-gray-700 dark:text-gray-300" />
-          {/* VISIBLE SIGN - NEW USER SHEET */}
-          <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white" title="NEW USER SHEET"></div>
+          <Avatar className="h-8 w-8">
+            <AvatarImage src="" alt={user.full_name || user.email} />
+            <AvatarFallback className="bg-primary/10">
+              <UserIcon className="h-4 w-4 text-primary" />
+            </AvatarFallback>
+          </Avatar>
+          <span className="hidden sm:block text-sm font-medium text-foreground max-w-[120px] truncate">
+            {user.full_name || user.email}
+          </span>
+          <ChevronDownIcon className="h-4 w-4 text-muted-foreground hidden sm:block" />
         </Button>
       </SheetTrigger>
       
-      <SheetContent side="right" className="w-[400px] sm:w-[400px] p-0">
-        <SheetHeader className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <SheetTitle className="text-lg font-semibold text-gray-900 dark:text-white">
-            User Profile
-          </SheetTitle>
+      <SheetContent side="right" className="w-[350px] sm:w-[400px]">
+        <SheetHeader className="text-left">
+          <div className="flex items-center space-x-3 mb-4">
+            <Avatar className="h-16 w-16">
+              <AvatarImage src="" alt={user.full_name || user.email} />
+              <AvatarFallback className="bg-primary/10 text-lg">
+                <UserIcon className="h-8 w-8 text-primary" />
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <SheetTitle className="text-lg font-semibold truncate">
+                {user.full_name || 'User'}
+              </SheetTitle>
+              <SheetDescription className="text-sm text-muted-foreground truncate">
+                {user.email}
+              </SheetDescription>
+            </div>
+          </div>
         </SheetHeader>
 
-        <div className="flex flex-col h-full">
-          {/* User Info Section */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <div className="flex items-center space-x-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={user?.avatar_url} alt={user?.full_name || user?.email} />
-                <AvatarFallback className="text-lg font-semibold bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
-                  {getInitials(user?.full_name, user?.email)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white truncate">
-                  {user?.full_name || 'User'}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                  {user?.email}
-                </p>
-                <div className="flex items-center mt-2 space-x-2">
-                  <Badge variant="secondary" className="text-xs">
-                    <Shield className="w-3 h-3 mr-1" />
-                    Verified
-                  </Badge>
-                  <Badge variant="outline" className="text-xs">
-                    Member since {formatDate(user?.created_at)}
-                  </Badge>
+        <div className="flex-1 space-y-6">
+          {/* Theme Toggle */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-foreground">Appearance</h3>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                {theme === 'dark' ? (
+                  <Moon className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Sun className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-sm font-medium">Dark Mode</span>
+              </div>
+              <Switch
+                checked={theme === 'dark'}
+                onCheckedChange={toggleDarkMode}
+                aria-label="Toggle dark mode"
+                className="data-[state=checked]:bg-green-600 data-[state=unchecked]:bg-gray-200"
+              />
+            </div>
+          </div>
+
+          <Separator />
+
+          {/* Menu Items */}
+          <div className="space-y-1">
+            {menuItems.map((item, index) => (
+              <Button
+                key={index}
+                variant="ghost"
+                className="w-full justify-start h-auto p-3 text-left"
+                onClick={item.action}
+              >
+                <item.icon className="mr-3 h-4 w-4 text-muted-foreground" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-medium text-foreground">
+                    {item.label}
+                  </div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {item.description}
+                  </div>
                 </div>
+              </Button>
+            ))}
+          </div>
+
+          <Separator />
+
+          {/* Sign Out */}
+          <Button
+            variant="ghost"
+            className="w-full justify-start h-auto p-3 text-left text-red-600 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+            onClick={handleSignOut}
+          >
+            <LogOut className="mr-3 h-4 w-4" />
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium">Sign Out</div>
+              <div className="text-xs text-muted-foreground">
+                End your current session
               </div>
             </div>
-          </div>
-
-          {/* Navigation Section */}
-          <div className="flex-1 p-6 space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={handleProfile}
-            >
-              <User className="mr-3 h-4 w-4" />
-              Profile Settings
-            </Button>
-            
-            <Button
-              variant="ghost"
-              className="w-full justify-start hover:bg-gray-100 dark:hover:bg-gray-800"
-              onClick={handleSettings}
-            >
-              <Settings className="mr-3 h-4 w-4" />
-              App Settings
-            </Button>
-
-            <Button
-              variant="ghost"
-              className="w-full justify-start hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={handleMessages}
-            >
-              <Mail className="mr-3 h-4 w-4" />
-              Messages
-              <span className="ml-auto text-xs text-gray-500">Inbox</span>
-            </Button>
-            
-            <Button
-              variant="ghost"
-              className="w-full justify-start hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-              onClick={handleAppointments}
-            >
-              <Calendar className="mr-3 h-4 w-4" />
-              Appointments
-              <span className="ml-auto text-xs text-gray-500">Manage</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              className="w-full justify-start hover:bg-gray-100 dark:hover:bg-gray-800"
-            >
-              <HelpCircle className="mr-3 h-4 w-4" />
-              Help & Support
-            </Button>
-          </div>
-
-          {/* Bottom Section */}
-          <div className="p-6 border-t border-gray-200 dark:border-gray-700 space-y-4">
-            {/* Theme Toggle */}
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Theme
-              </span>
-              <ThemeToggle />
-            </div>
-
-            <Separator />
-
-            {/* Logout Button */}
-            <Button
-              variant="outline"
-              className="w-full text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/20"
-              onClick={handleLogout}
-            >
-              <LogOut className="mr-2 h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
-  );
-} 
+  )
+}
+
+export default UserSheet 

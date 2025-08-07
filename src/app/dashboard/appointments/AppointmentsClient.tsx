@@ -573,9 +573,9 @@ export default function AppointmentsClient({
                       {appointment.status}
                     </Badge>
                     
-                    {/* Action buttons */}
+                    {/* Action buttons - Mobile responsive with flex-wrap */}
                     {canShowActions(appointment) && (
-                      <div className="flex space-x-2">
+                      <div className="flex flex-wrap gap-2">
                         {/* Reschedule button for upcoming appointments */}
                         {activeTab === 'upcoming' && (
                           <Button
@@ -583,7 +583,7 @@ export default function AppointmentsClient({
                             size="sm"
                             onClick={() => setRescheduleModal({ isOpen: true, appointment })}
                             disabled={loadingStates[`reschedule-${appointment.id}`]}
-                            className="text-xs"
+                            className="text-xs flex-shrink-0"
                           >
                             <Calendar className="h-3 w-3 mr-1" />
                             Reschedule
@@ -597,7 +597,7 @@ export default function AppointmentsClient({
                             size="sm"
                             onClick={() => setCancelModal({ isOpen: true, appointment })}
                             disabled={loadingStates[`cancel-${appointment.id}`]}
-                            className="text-xs"
+                            className="text-xs flex-shrink-0"
                           >
                             <X className="h-3 w-3 mr-1" />
                             Cancel
@@ -611,7 +611,7 @@ export default function AppointmentsClient({
                             size="sm"
                             onClick={() => setRatingModal({ isOpen: true, appointment })}
                             disabled={loadingStates[`rating-${appointment.id}`]}
-                            className="text-xs"
+                            className="text-xs flex-shrink-0"
                           >
                             <Star className="h-3 w-3 mr-1" />
                             Rate
@@ -624,7 +624,7 @@ export default function AppointmentsClient({
                             variant="outline"
                             size="sm"
                             onClick={() => setRebookModal({ isOpen: true, appointment })}
-                            className="text-xs"
+                            className="text-xs flex-shrink-0"
                           >
                             <RefreshCw className="h-3 w-3 mr-1" />
                             Rebook
@@ -636,7 +636,7 @@ export default function AppointmentsClient({
                           variant="outline"
                           size="sm"
                           onClick={() => handleDownloadReceipt(appointment)}
-                          className="text-xs"
+                          className="text-xs flex-shrink-0"
                         >
                           <Download className="h-3 w-3 mr-1" />
                           Receipt
