@@ -108,12 +108,7 @@ export default function LoginPage() {
           >
             Create Account
           </Link>
-          <p className="text-xs text-muted-foreground text-center mt-2">
-            Don&apos;t want to use a password?{' '}
-            <Link href="/magic-link" className="underline hover:text-foreground transition focus:outline-none">
-              Use magic link
-            </Link>
-          </p>
+          {/* Removed magic link option to enforce password-only login */}
         </form>
       </div>
     </div>
