@@ -10,6 +10,12 @@ export async function middleware(req: NextRequest) {
   const supabase = createMiddlewareClient({ req, res })
 
   try {
+    // Special handling for reset-password route - always allow access
+    if (req.nextUrl.pathname.startsWith('/reset-password')) {
+      console.log('Middleware: Allowing access to reset-password route')
+      return res
+    }
+
     // Refresh session if expired
     const { data: { user } } = await supabase.auth.getUser()
 

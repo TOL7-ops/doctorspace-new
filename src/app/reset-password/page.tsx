@@ -1,110 +1,233 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'react-hot-toast';
+import Link from 'next/link';
+import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Get access token from URL (check multiple possible parameter names)
+  const accessToken = searchParams.get('access_token') || searchParams.get('token') || searchParams.get('accessToken');
+  
+  // Log all URL parameters for debugging
+  useEffect(() => {
+    console.log('All URL parameters:', Object.fromEntries(searchParams.entries()));
+  }, [searchParams]);
+
+  useEffect(() => {
+    console.log('Reset password page loaded');
+    console.log('Access token:', accessToken ? 'Present' : 'Missing');
+    
+    // Check if access token exists
+    if (!accessToken) {
+      console.log('No access token found in URL');
+      setError('Invalid or missing reset link. Please request a new password reset.');
+      return;
+    }
+
+    // Set the session with the access token
+    const setSession = async () => {
+      try {
+        console.log('Setting session with access token...');
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: null,
+        });
+
+        if (error) {
+          console.error('Session error:', error);
+          setError('Invalid or expired reset link. Please request a new password reset.');
+        } else {
+          console.log('Session set successfully:', data);
+        }
+      } catch (err) {
+        console.error('Error setting session:', err);
+        setError('Invalid or expired reset link. Please request a new password reset.');
+      }
+    };
+
+    setSession();
+  }, [accessToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
+    // Validate passwords
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      setLoading(false);
+      return;
+    }
+
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
       setLoading(false);
       return;
     }
 
     try {
+      // Update user password
       const { error } = await supabase.auth.updateUser({
         password: password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Password update error:', error);
+        setError(error.message || 'Failed to update password. Please try again.');
+        return;
+      }
 
-      // Success - redirect to login
-      router.push('/login?reset=success');
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      // Success
+      setSuccess(true);
+      toast.success('Password updated successfully!');
+      
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Reset your password
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Please enter your new password
-          </p>
+  if (success) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background px-2">
+        <div className="w-full max-w-md mx-auto bg-card rounded-2xl shadow-xl p-8 flex flex-col items-center border border-border">
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/20 mb-4">
+              <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold mb-2 text-center text-foreground">Password Updated!</h1>
+            <p className="text-muted-foreground mb-6 text-center">
+              Your password has been successfully updated. You will be redirected to the login page shortly.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold shadow hover:bg-primary/90 transition"
+            >
+              Go to Login
+            </Link>
+          </div>
         </div>
+      </div>
+    );
+  }
 
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background px-2">
+      <div className="w-full max-w-md mx-auto bg-card rounded-2xl shadow-xl p-8 flex flex-col items-center border border-border">
+        <div className="w-full flex items-center justify-between mb-6">
+          <Link
+            href="/login"
+            className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back to login
+          </Link>
+        </div>
+        
+        <h1 className="text-2xl font-bold mb-2 text-center text-foreground">Reset your password</h1>
+        <p className="text-muted-foreground mb-6 text-center">Enter your new password below</p>
+        
+        <form onSubmit={handleSubmit} className="w-full">
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                </div>
-              </div>
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
-          <div className="rounded-md shadow-sm space-y-4">
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                New Password
-              </label>
+          <div className="mb-4">
+            <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
+              New Password
+            </label>
+            <div className="relative">
               <input
                 id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <div>
-              <label htmlFor="confirm-password" className="block text-sm font-medium text-gray-700">
-                Confirm New Password
-              </label>
-              <input
-                id="confirm-password"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
+                className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition pr-10"
+                placeholder="Enter your new password"
                 required
+                minLength={6}
+                aria-label="New Password"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Password must be at least 6 characters long
+            </p>
+          </div>
+
+          <div className="mb-6">
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-foreground mb-1">
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <input
+                id="confirmPassword"
+                type={showConfirmPassword ? 'text' : 'password'}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                placeholder="••••••••"
+                className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition pr-10"
+                placeholder="Confirm your new password"
+                required
+                aria-label="Confirm New Password"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none"
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Updating password...' : 'Update password'}
-            </button>
+          <button
+            type="submit"
+            disabled={loading || !accessToken}
+            className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg font-semibold shadow hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
+          >
+            {loading ? 'Updating password...' : 'Update Password'}
+          </button>
+
+          <div className="text-center">
+            <p className="text-sm text-muted-foreground">
+              Remember your password?{' '}
+              <Link href="/login" className="text-primary hover:underline font-medium">
+                Sign in
+              </Link>
+            </p>
           </div>
         </form>
       </div>

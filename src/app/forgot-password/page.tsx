@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
+import { toast } from 'react-hot-toast';
+import { ArrowLeft } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -23,8 +25,11 @@ export default function ForgotPasswordPage() {
       if (error) throw error;
 
       setSuccess(true);
+      toast.success('Password reset link sent to your email!');
     } catch (error) {
-      setError(error instanceof Error ? error.message : 'An error occurred');
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      setError(errorMessage);
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -32,23 +37,34 @@ export default function ForgotPasswordPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-md w-full space-y-8">
-          <div>
-            <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-              Check your email
-            </h2>
-            <p className="mt-2 text-center text-sm text-gray-600">
+      <div className="min-h-screen flex items-center justify-center bg-background px-2">
+        <div className="w-full max-w-md mx-auto bg-card rounded-2xl shadow-xl p-8 flex flex-col items-center border border-border">
+          <div className="w-full flex items-center justify-between mb-6">
+            <Link
+              href="/login"
+              className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5 mr-2" />
+              Back to login
+            </Link>
+          </div>
+          
+          <div className="text-center">
+            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/20 mb-4">
+              <svg className="h-6 w-6 text-green-600 dark:text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold mb-2 text-center text-foreground">Check your email</h1>
+            <p className="text-muted-foreground mb-6 text-center">
               We&apos;ve sent you a link to reset your password. Please check your email and follow the instructions.
             </p>
-            <div className="mt-4 text-center">
-              <Link
-                href="/login"
-                className="font-medium text-blue-600 hover:text-blue-500"
-              >
-                Return to login
-              </Link>
-            </div>
+            <Link
+              href="/login"
+              className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold shadow hover:bg-primary/90 transition"
+            >
+              Return to login
+            </Link>
           </div>
         </div>
       </div>
@@ -56,65 +72,60 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Reset your password
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
-              Sign up
-            </Link>
-          </p>
+    <div className="min-h-screen flex items-center justify-center bg-background px-2">
+      <div className="w-full max-w-md mx-auto bg-card rounded-2xl shadow-xl p-8 flex flex-col items-center border border-border">
+        <div className="w-full flex items-center justify-between mb-6">
+          <Link
+            href="/login"
+            className="flex items-center text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 mr-2" />
+            Back to login
+          </Link>
         </div>
-
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        
+        <h1 className="text-2xl font-bold mb-2 text-center text-foreground">Reset your password</h1>
+        <p className="text-muted-foreground mb-6 text-center">Enter your email to receive a reset link</p>
+        
+        <form onSubmit={handleSubmit} className="w-full">
           {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
-                </div>
-              </div>
+            <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
-          <div>
-            <label htmlFor="email-address" className="block text-sm font-medium text-gray-700">
+          <div className="mb-6">
+            <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">
               Email address
             </label>
             <input
-              id="email-address"
+              id="email"
               name="email"
               type="email"
               autoComplete="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder="you@example.com"
+              className="w-full px-4 py-2 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+              placeholder="Enter your email address"
             />
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Sending reset link...' : 'Send reset link'}
-            </button>
-          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-2 px-4 bg-primary text-primary-foreground rounded-lg font-semibold shadow hover:bg-primary/90 transition disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-primary/30 mb-4"
+          >
+            {loading ? 'Sending reset link...' : 'Send reset link'}
+          </button>
 
           <div className="text-center">
-            <Link
-              href="/login"
-              className="font-medium text-blue-600 hover:text-blue-500"
-            >
-              Back to login
-            </Link>
+            <p className="text-sm text-muted-foreground">
+              Don&apos;t have an account?{' '}
+              <Link href="/signup" className="text-primary hover:underline font-medium">
+                Sign up
+              </Link>
+            </p>
           </div>
         </form>
       </div>

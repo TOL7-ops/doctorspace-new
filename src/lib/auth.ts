@@ -1,13 +1,7 @@
-import { supabase } from './supabase';
 import { createServerSupabase } from './supabase-server';
 import type { User } from '@/types';
 
-export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) throw error;
-  return { success: true };
-};
-
+// Server-side function to get current user
 export async function getCurrentUserServer() {
   const supabase = createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
