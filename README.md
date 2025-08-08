@@ -34,3 +34,26 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Maintenance: Clean duplicate Supabase users
+
+Create a `.env.local` with:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=your-url
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
+
+Dry run (no deletions):
+
+```
+DRY_RUN=true node scripts/clean-duplicates.js
+```
+
+Apply deletions:
+
+```
+node scripts/clean-duplicates.js
+```
+
+The script keeps the most recent confirmed user per email and deletes other duplicates/unconfirmed stale accounts.

@@ -19,13 +19,30 @@ export default function SignUpPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showResend, setShowResend] = useState(false);
+  const [resending, setResending] = useState(false);
 
   const isFormValid = Boolean(firstName && lastName && email && password);
+
+  const handleResend = async () => {
+    try {
+      setResending(true);
+      const { error } = await supabase.auth.resend({ type: "signup", email });
+      if (error) throw error;
+      toast.success("Verification email resent. Please check your inbox.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to resend verification email.";
+      toast.error(message);
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    setShowResend(false);
 
     try {
       const { error } = await supabase.auth.signUp({
@@ -41,11 +58,15 @@ export default function SignUpPage() {
       });
 
       if (error) {
-        // Map common errors to user-friendly messages
         let message = error.message || "Signup failed. Please try again.";
         const lower = message.toLowerCase();
-        if (lower.includes("users_email_key") || lower.includes("already registered") || lower.includes("already exists")) {
-          message = "An account with this email already exists. Please sign in instead.";
+        if (
+          lower.includes("users_email_key") ||
+          lower.includes("already registered") ||
+          lower.includes("already exists")
+        ) {
+          message = "An account with this email already exists. Try signing in or resend verification.";
+          setShowResend(true);
         } else if (lower.includes("password")) {
           message = "Please choose a stronger password (min 6 characters).";
         } else if (lower.includes("email")) {
@@ -56,7 +77,6 @@ export default function SignUpPage() {
         return;
       }
 
-      // Success
       toast.success("Account created! Check your email to verify your account.");
       router.push("/login");
     } catch (err) {
@@ -88,6 +108,13 @@ export default function SignUpPage() {
           {error && (
             <div className="mb-4 p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800" role="alert">
               <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
+              {showResend && (
+                <div className="mt-3">
+                  <Button type="button" variant="outline" className="w-full" onClick={handleResend} disabled={resending}>
+                    {resending ? "Resending..." : "Resend verification email"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
