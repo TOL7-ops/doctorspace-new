@@ -62,7 +62,7 @@ function ResetPasswordForm() {
     };
 
     setSession();
-  }, [accessToken]);
+  }, [accessToken, refreshToken]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

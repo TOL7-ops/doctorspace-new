@@ -8,6 +8,7 @@ import Link from "next/link";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useSignup, type Role } from "@/hooks/useSignup";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -16,13 +17,15 @@ export default function SignUpPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [role, setRole] = useState<Role>("patient");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showResend, setShowResend] = useState(false);
   const [resending, setResending] = useState(false);
 
-  const isFormValid = Boolean(firstName && lastName && email && password);
+  const { signup, loading } = useSignup();
+
+  const isFormValid = Boolean(firstName && lastName && email && password && role);
 
   const handleResend = async () => {
     try {
@@ -40,52 +43,35 @@ export default function SignUpPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
     setError(null);
     setShowResend(false);
 
-    try {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            first_name: firstName,
-            last_name: lastName,
-          },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
-        },
-      });
+    const fullName = `${firstName} ${lastName}`.trim();
 
-      if (error) {
-        let message = error.message || "Signup failed. Please try again.";
-        const lower = message.toLowerCase();
-        if (
-          lower.includes("users_email_key") ||
-          lower.includes("already registered") ||
-          lower.includes("already exists")
-        ) {
-          message = "An account with this email already exists. Try signing in or resend verification.";
-          setShowResend(true);
-        } else if (lower.includes("password")) {
-          message = "Please choose a stronger password (min 6 characters).";
-        } else if (lower.includes("email")) {
-          message = "Please enter a valid email address.";
-        }
-        setError(message);
-        toast.error(message);
-        return;
+    const { user, error } = await signup({ email, password, fullName, role });
+
+    if (error) {
+      let message = error || "Signup failed. Please try again.";
+      const lower = message.toLowerCase();
+      if (
+        lower.includes("users_email_key") ||
+        lower.includes("already registered") ||
+        lower.includes("already exists")
+      ) {
+        message = "An account with this email already exists. Try signing in or resend verification.";
+        setShowResend(true);
+      } else if (lower.includes("password")) {
+        message = "Please choose a stronger password (min 6 characters).";
+      } else if (lower.includes("email")) {
+        message = "Please enter a valid email address.";
       }
-
-      toast.success("Account created! Check your email to verify your account.");
-      router.push("/login");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "An unexpected error occurred.";
       setError(message);
       toast.error(message);
-    } finally {
-      setLoading(false);
+      return;
     }
+
+    toast.success("Account created! Check your email to verify your account.");
+    router.push("/login");
   };
 
   return (
@@ -167,6 +153,23 @@ export default function SignUpPage() {
               aria-label="Email"
               autoComplete="email"
             />
+          </div>
+
+          <div className="mb-4">
+            <label htmlFor="role" className="block text-sm font-medium text-foreground mb-1">
+              Role
+            </label>
+            <select
+              id="role"
+              name="role"
+              value={role}
+              onChange={(e) => setRole(e.target.value as Role)}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Select role"
+            >
+              <option value="patient">Patient</option>
+              <option value="doctor">Doctor</option>
+            </select>
           </div>
 
           <div className="mb-6">

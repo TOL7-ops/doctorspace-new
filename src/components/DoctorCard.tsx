@@ -35,7 +35,7 @@ export function DoctorCard({ doctor, onBookAppointment, loading = false }: Docto
   }
   if (loading) {
     return (
-      <Card className="w-full max-w-sm transition-all duration-200 hover:shadow-lg">
+      <Card className="w-full max-w-sm md:max-w-md lg:max-w-md min-h-[260px] transition-all duration-200 hover:shadow-lg">
         <CardContent className="p-6">
           <div className="flex items-start space-x-4">
             <Skeleton className="h-16 w-16 rounded-full" />
@@ -56,7 +56,7 @@ export function DoctorCard({ doctor, onBookAppointment, loading = false }: Docto
   }
 
   return (
-    <Card className="group w-full max-w-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
+    <Card className="group w-full max-w-sm md:max-w-md lg:max-w-md min-h-[260px] transition-all duration-200 hover:shadow-lg hover:scale-[1.02]">
       <CardContent className="p-6">
         <div className="flex items-start space-x-4">
           <div 

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Calendar, Inbox, Settings } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/context/AuthContext'
 
 const navigation = [
   { 
@@ -35,6 +36,15 @@ const navigation = [
 
 export function BottomNavigation() {
   const pathname = usePathname()
+  const { profile } = useAuth()
+
+  const items = [...navigation]
+  if (profile?.role === 'doctor') {
+    // ensure doctor-specific view appears instead of patient appointments
+    const idx = items.findIndex(i => i.name === 'Appointments')
+    if (idx !== -1) items.splice(idx, 1)
+    items.splice(1, 0, { name: 'Requests', href: '/dashboard/doctor-appointments', icon: Calendar, ariaLabel: 'View appointment requests' })
+  }
 
   return (
     <nav 
@@ -43,7 +53,7 @@ export function BottomNavigation() {
       aria-label="Main navigation"
     >
       <div className="flex justify-around">
-        {navigation.map((item) => {
+        {items.map((item) => {
           const isActive = pathname === item.href
           const Icon = item.icon
           
