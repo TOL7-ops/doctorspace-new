@@ -48,7 +48,7 @@ export default function SignUpPage() {
 
     const fullName = `${firstName} ${lastName}`.trim();
 
-    const { user, error } = await signup({ email, password, fullName, role });
+    const { error } = await signup({ email, password, fullName, role });
 
     if (error) {
       let message = error || "Signup failed. Please try again.";
