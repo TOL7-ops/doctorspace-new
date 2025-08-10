@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // List of public routes that don't require authentication
-const publicRoutes = ['/login', '/signup', '/forgot-password', '/reset-password']
+const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password']
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
@@ -27,7 +27,7 @@ export async function middleware(req: NextRequest) {
     // Allow public routes and API routes
     if (isPublicRoute || isAuthRoute || isApiRoute) {
       // If user is logged in and trying to access auth pages, redirect to dashboard
-      if (user && isPublicRoute) {
+      if (user && isPublicRoute && req.nextUrl.pathname !== '/') {
         return NextResponse.redirect(new URL('/dashboard', req.url))
       }
       return res
