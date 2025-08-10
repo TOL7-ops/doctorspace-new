@@ -3,62 +3,66 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // List of public routes that don't require authentication
-const publicRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password']
+const publicRoutes = [
+  '/',
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/verify-email'
+]
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
+  const { pathname } = req.nextUrl
 
   try {
-    // Special handling for reset-password route - always allow access
-    if (req.nextUrl.pathname.startsWith('/reset-password')) {
-      console.log('Middleware: Allowing access to reset-password route')
+    // Skip middleware for static files and API routes
+    if (
+      pathname.startsWith('/_next/') ||
+      pathname.startsWith('/api/') ||
+      pathname.startsWith('/favicon.ico') ||
+      pathname.startsWith('/public/')
+    ) {
       return res
     }
 
-    // Refresh session if expired
+    // Special handling for reset-password route - always allow access
+    if (pathname.startsWith('/reset-password')) {
+      return res
+    }
+
+    // Get user session
     const { data: { user } } = await supabase.auth.getUser()
 
-    // Handle auth state
-    const isPublicRoute = publicRoutes.some(route => req.nextUrl.pathname.startsWith(route))
-    const isAuthRoute = req.nextUrl.pathname.startsWith('/auth/')
-    const isApiRoute = req.nextUrl.pathname.startsWith('/api/')
+    // Check if current path is public
+    const isPublicPath = publicRoutes.some(path => pathname.startsWith(path))
 
-    // Allow public routes and API routes
-    if (isPublicRoute || isAuthRoute || isApiRoute) {
-      // If user is logged in and trying to access auth pages, redirect to dashboard
-      if (user && isPublicRoute && req.nextUrl.pathname !== '/') {
-        return NextResponse.redirect(new URL('/dashboard', req.url))
-      }
-      return res
+    // If authenticated and trying to access a public auth page → redirect to dashboard
+    if (user && isPublicPath && pathname !== '/') {
+      const dashboardUrl = new URL('/dashboard', req.url)
+      return NextResponse.redirect(dashboardUrl)
     }
 
-    // Protected routes - redirect to login if not authenticated
-    if (!user) {
-      const redirectUrl = new URL('/login', req.url)
-      redirectUrl.searchParams.set('redirectTo', req.nextUrl.pathname)
-      return NextResponse.redirect(redirectUrl)
+    // If NOT authenticated and trying to access a protected route → redirect to login
+    if (!user && !isPublicPath) {
+      const loginUrl = new URL('/login', req.url)
+      loginUrl.searchParams.set('redirectTo', pathname)
+      return NextResponse.redirect(loginUrl)
     }
 
-    // User is authenticated, allow access to protected routes
+    // Allow the request to continue
     return res
-  } catch {
-    console.error('Middleware error occurred')
-    // On error, allow the request to continue
+  } catch (error) {
+    console.error('Middleware error occurred:', error)
+    // On error, allow the request to continue to prevent blocking
     return res
   }
 }
 
-// Specify which routes this middleware should run for
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public (public files)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|public).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico).*)',
   ],
 } 
