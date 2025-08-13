@@ -26,7 +26,7 @@ export async function GET(request: Request) {
         access_token: accessToken,
         refresh_token: refreshToken,
       });
-    } catch (_) {
+    } catch {
       // If setSession fails, fall back to code exchange below
     }
   }
@@ -44,7 +44,7 @@ export async function GET(request: Request) {
     if (url.origin === requestUrl.origin) {
       nextPath = url.pathname + url.search + url.hash;
     }
-  } catch (_) {
+  } catch {
     nextPath = '/dashboard';
   }
 

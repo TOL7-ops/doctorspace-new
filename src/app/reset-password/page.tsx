@@ -47,7 +47,7 @@ function ResetPasswordForm() {
         if (error) {
           setError('Invalid or expired reset link. Please request a new password reset.');
         }
-      } catch (err) {
+      } catch {
         setError('Invalid or expired reset link. Please request a new password reset.');
       }
     };
@@ -99,7 +99,7 @@ function ResetPasswordForm() {
         router.push('/login');
       }, 2000);
 
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);

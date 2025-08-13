@@ -28,22 +28,22 @@ export async function DELETE(request: Request) {
     const ids = appointmentIds.split(',')
 
     // Rely on RLS by scoping delete to patient_id = auth.uid()
-    const { data, error } = await supabase
+    const result = await supabase
       .from('appointments')
       .delete()
       .in('id', ids)
       .eq('patient_id', user.id)
       .select()
 
-    if (error) {
+    if (result.error) {
       return NextResponse.json(
-        { error: 'Failed to delete appointments', details: error.message, code: error.code },
+        { error: 'Failed to delete appointments', details: result.error.message, code: result.error.code },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({ success: true, deletedCount: data?.length || 0, deletedAppointments: data })
-  } catch (error) {
+    return NextResponse.json({ success: true, deletedCount: result.data?.length || 0, deletedAppointments: result.data })
+  } catch {
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
