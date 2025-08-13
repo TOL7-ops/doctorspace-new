@@ -10,20 +10,28 @@ export async function GET(request: Request) {
   const accessToken = requestUrl.searchParams.get('access_token');
   const refreshToken = requestUrl.searchParams.get('refresh_token');
 
-  // Handle password reset flow - check for access_token first
-  if (accessToken) {
+  // Password reset flow - direct tokens indicate recovery
+  if (accessToken && type === 'recovery') {
     const resetUrl = new URL('/reset-password', requestUrl.origin);
     resetUrl.searchParams.set('access_token', accessToken);
     if (refreshToken) resetUrl.searchParams.set('refresh_token', refreshToken);
     return NextResponse.redirect(resetUrl);
   }
 
-  // Handle password reset flow by type
-  if (type === 'recovery') {
-    const resetUrl = new URL('/reset-password', requestUrl.origin);
-    return NextResponse.redirect(resetUrl);
+  // Signup confirmation flow: if tokens are present and not recovery, set session for auto-login
+  if (accessToken && refreshToken && (type === 'signup' || !type)) {
+    const supabase = createRouteHandlerClient({ cookies });
+    try {
+      await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+    } catch (_) {
+      // If setSession fails, fall back to code exchange below
+    }
   }
 
+  // Fallback: if we have a code, exchange it for a session
   if (code) {
     const supabase = createRouteHandlerClient({ cookies });
     await supabase.auth.exchangeCodeForSession(code);

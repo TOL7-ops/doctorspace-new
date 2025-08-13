@@ -40,11 +40,13 @@ export function useSignup(): UseSignupReturn {
       // TODO: Add rate limiting or captcha to prevent abuse
       await new Promise(resolve => setTimeout(resolve, 100));
 
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== 'undefined' ? window.location.origin : '');
+
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+          emailRedirectTo: `${siteUrl}/auth/callback?next=/dashboard`,
           data: {
             full_name: fullName,
             role,
