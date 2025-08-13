@@ -5,20 +5,13 @@ import { NextResponse } from 'next/server';
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
-  const next = requestUrl.searchParams.get('next') || '/dashboard';
+  const nextParam = requestUrl.searchParams.get('next') || '/dashboard';
   const type = requestUrl.searchParams.get('type');
   const accessToken = requestUrl.searchParams.get('access_token');
   const refreshToken = requestUrl.searchParams.get('refresh_token');
 
-  console.log('Auth callback - code:', code ? 'present' : 'missing');
-  console.log('Auth callback - next:', next);
-  console.log('Auth callback - type:', type);
-  console.log('Auth callback - access_token:', accessToken ? 'present' : 'missing');
-  console.log('Auth callback - refresh_token:', refreshToken ? 'present' : 'missing');
-
   // Handle password reset flow - check for access_token first
   if (accessToken) {
-    console.log('Auth callback: Found access_token, redirecting to reset-password');
     const resetUrl = new URL('/reset-password', requestUrl.origin);
     resetUrl.searchParams.set('access_token', accessToken);
     if (refreshToken) resetUrl.searchParams.set('refresh_token', refreshToken);
@@ -27,10 +20,7 @@ export async function GET(request: Request) {
 
   // Handle password reset flow by type
   if (type === 'recovery') {
-    console.log('Auth callback: Handling password recovery flow');
-    // For password reset, redirect to reset-password
     const resetUrl = new URL('/reset-password', requestUrl.origin);
-    console.log('Auth callback: Redirecting to reset-password');
     return NextResponse.redirect(resetUrl);
   }
 
@@ -39,6 +29,16 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
   }
 
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(new URL(next, requestUrl.origin));
+  // Sanitize next so only relative paths are allowed
+  let nextPath = '/dashboard';
+  try {
+    const url = new URL(nextParam, requestUrl.origin);
+    if (url.origin === requestUrl.origin) {
+      nextPath = url.pathname + url.search + url.hash;
+    }
+  } catch (_) {
+    nextPath = '/dashboard';
+  }
+
+  return NextResponse.redirect(new URL(nextPath, requestUrl.origin));
 } 

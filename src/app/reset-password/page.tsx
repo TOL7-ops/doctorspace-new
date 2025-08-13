@@ -26,16 +26,12 @@ function ResetPasswordForm() {
   const refreshToken = searchParams.get('refresh_token') || null;
 
   useEffect(() => {
-    console.log('All URL parameters:', Object.fromEntries(searchParams.entries()));
+    // Avoid logging tokens; just ensure params are present
   }, [searchParams]);
 
   useEffect(() => {
-    console.log('Reset password page loaded');
-    console.log('Access token:', accessToken ? 'Present' : 'Missing');
-
     // Check if access token exists
     if (!accessToken) {
-      console.log('No access token found in URL');
       setError('Invalid or missing reset link. Please request a new password reset.');
       return;
     }
@@ -43,20 +39,15 @@ function ResetPasswordForm() {
     // Set the session with the access token
     const setSession = async () => {
       try {
-        console.log('Setting session with access token...');
-        const { data, error } = await supabase.auth.setSession({
+        const { error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
 
         if (error) {
-          console.error('Session error:', error);
           setError('Invalid or expired reset link. Please request a new password reset.');
-        } else {
-          console.log('Session set successfully:', data);
         }
       } catch (err) {
-        console.error('Error setting session:', err);
         setError('Invalid or expired reset link. Please request a new password reset.');
       }
     };
@@ -68,6 +59,8 @@ function ResetPasswordForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    // TODO: Add rate limiting/backoff to reduce abuse
 
     // Validate passwords
     const hasMinLength = password.length >= 8;
@@ -93,7 +86,6 @@ function ResetPasswordForm() {
       });
 
       if (error) {
-        console.error('Password update error:', error);
         setError(error.message || 'Failed to update password. Please try again.');
         return;
       }
@@ -108,7 +100,6 @@ function ResetPasswordForm() {
       }, 2000);
 
     } catch (err) {
-      console.error('Unexpected error:', err);
       setError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);

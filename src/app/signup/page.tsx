@@ -52,6 +52,7 @@ export default function SignUpPage() {
     
     try {
       setResending(true);
+      // TODO: Add rate limiting/captcha for resend
       const { error } = await supabase.auth.resend({ type: "signup", email });
       if (error) throw error;
       toast.success("Verification email resent. Please check your inbox.");
@@ -66,13 +67,11 @@ export default function SignUpPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Prevent multiple submissions
     if (loading) return;
     
     setError(null);
     setShowResend(false);
 
-    // Run form validation before API call
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
       setError(validationErrors.join(", "));

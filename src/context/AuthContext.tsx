@@ -28,29 +28,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [pendingAppointmentsCount, setPendingAppointmentsCount] = useState<number>(0)
   const [loading, setLoading] = useState(true)
 
-  // Fetch profile from Supabase
+  // Fetch profile from Supabase (patients is the single source of truth)
   const fetchUserProfile = async (userId: string) => {
     try {
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, full_name, role, avatar_url')
+        .from('patients')
+        .select('id, full_name, role')
         .eq('id', userId)
         .single()
 
       if (error) {
-        console.error('Error fetching profile:', error)
+        console.error('Error fetching patient profile:', error)
         return
       }
 
       setProfile(data as Profile)
       setRole((data as Profile)?.role ?? null)
     } catch (err) {
-      console.error('Unexpected error fetching profile:', err)
+      console.error('Unexpected error fetching patient profile:', err)
     }
   }
 
   useEffect(() => {
-    // Get session on load
     const getInitialSession = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
@@ -66,7 +65,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     getInitialSession()
 
-    // Listen for login/logout events
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       const sUser = session?.user
       setUser(sUser ? { id: sUser.id, email: sUser.email } : null)

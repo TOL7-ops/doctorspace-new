@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'react-hot-toast';
 import Link from 'next/link';
@@ -12,13 +12,26 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
-  
+  const searchParams = useSearchParams();
+
+  const getSafeRedirectPath = () => {
+    const redirect = searchParams.get('redirectTo') || '/dashboard';
+    try {
+      // Only allow relative paths
+      const url = new URL(redirect, window.location.origin);
+      if (url.origin === window.location.origin) {
+        return url.pathname + url.search + url.hash;
+      }
+    } catch (_) {}
+    return '/dashboard';
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      // TODO: Add rate limiting or captcha
       const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -28,7 +41,7 @@ export default function LoginPage() {
         toast.error(error.message);
       } else {
         toast.success('Signed in successfully!');
-        router.push('/dashboard');
+        router.push(getSafeRedirectPath());
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
@@ -108,7 +121,6 @@ export default function LoginPage() {
           >
             Create Account
           </Link>
-          {/* Removed magic link option to enforce password-only login */}
         </form>
       </div>
     </div>

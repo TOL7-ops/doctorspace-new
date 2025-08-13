@@ -11,6 +11,7 @@ export interface SignupParams {
   password: string;
   fullName: string;
   role: Role;
+  dateOfBirth?: string;
 }
 
 interface UseSignupReturn {
@@ -26,26 +27,30 @@ export function useSignup(): UseSignupReturn {
   const [loading, setLoading] = useState<boolean>(false);
   const isSubmittingRef = useRef(false);
 
-  const signup = useCallback(async ({ email, password, fullName, role }: SignupParams) => {
-    // Prevent multiple simultaneous submissions
+  const signup = useCallback(async ({ email, password, fullName, role, dateOfBirth }: SignupParams) => {
     if (isSubmittingRef.current) {
       return { user: null, error: "Signup already in progress. Please wait..." };
     }
 
-    // Set submitting flag immediately
     isSubmittingRef.current = true;
     setLoading(true);
     setError(null);
 
     try {
-      // Add a small delay to prevent rapid clicks
+      // TODO: Add rate limiting or captcha to prevent abuse
       await new Promise(resolve => setTimeout(resolve, 100));
 
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        // Keep redirect to callback so verified users land in app
-        options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard` },
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+          data: {
+            full_name: fullName,
+            role,
+            date_of_birth: dateOfBirth || new Date().toISOString().split('T')[0],
+          },
+        },
       });
 
       if (signUpError) {
@@ -58,28 +63,7 @@ export function useSignup(): UseSignupReturn {
 
       const createdUser = data.user ?? null;
 
-      // If we have a user, create/update their profile with role and full name
-      if (createdUser) {
-        const profileInsert = {
-          id: createdUser.id,
-          full_name: fullName,
-          role,
-          created_at: new Date().toISOString(),
-        };
-
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert(profileInsert, { onConflict: "id" });
-
-        if (profileError) {
-          const message = profileError.message || "Failed to create profile.";
-          setError(message);
-          setLoading(false);
-          isSubmittingRef.current = false;
-          return { user: createdUser, error: message };
-        }
-      }
-
+      // Do not upsert into any local profile table here; rely on DB trigger to populate patients
       setUser(createdUser);
       setLoading(false);
       isSubmittingRef.current = false;

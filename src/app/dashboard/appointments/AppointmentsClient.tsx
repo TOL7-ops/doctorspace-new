@@ -259,9 +259,7 @@ export default function AppointmentsClient({
         const testResponse = await fetch(`/api/appointments/delete?ids=${appointmentIds[0]}`, {
           method: 'DELETE',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${testUser.id}`,
-            'x-user-id': testUser.id
+            'Content-Type': 'application/json'
           }
         })
 
@@ -285,9 +283,7 @@ export default function AppointmentsClient({
     const response = await fetch(`/api/appointments/delete?ids=${appointmentIds.join(',')}`, {
       method: 'DELETE',
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${user.id}`,
-        'x-user-id': user.id
+        'Content-Type': 'application/json'
       }
     })
 
